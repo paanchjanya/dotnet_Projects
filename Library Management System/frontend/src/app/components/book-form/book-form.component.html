@@ -1,0 +1,127 @@
+<div class="container container-small animate-fade-in">
+  <div class="form-card">
+    <div class="form-header">
+      <h1 class="form-title">{{ isEditMode ? 'Edit Book Details' : 'Add New Book' }}</h1>
+      <p class="form-subtitle">
+        {{ isEditMode ? 'Update price, category, and availability. Title, Author, and Published Date are locked.' : 'Register a new book in the library catalogue.' }}
+      </p>
+    </div>
+
+    @if (isLoading) {
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading book data...</p>
+      </div>
+    } @else {
+      @if (errorMessage) {
+        <div class="error-banner">
+          <span class="error-icon">⚠️</span>
+          <span>{{ errorMessage }}</span>
+        </div>
+      }
+
+      <form [formGroup]="bookForm" (ngSubmit)="onSubmit()" class="book-form">
+        <!-- Book Title -->
+        <div class="form-group" [class.error]="isFieldInvalid('title')">
+          <label for="title" class="form-label">Book Title <span class="required">*</span></label>
+          <input 
+            type="text" 
+            id="title" 
+            formControlName="title" 
+            class="form-control" 
+            placeholder="e.g. Clean Code"
+          />
+          @if (isFieldInvalid('title')) {
+            <span class="error-message">{{ getFieldError('title') }}</span>
+          }
+        </div>
+
+        <!-- Author Name -->
+        <div class="form-group" [class.error]="isFieldInvalid('author')">
+          <label for="author" class="form-label">Author Name <span class="required">*</span></label>
+          <input 
+            type="text" 
+            id="author" 
+            formControlName="author" 
+            class="form-control" 
+            placeholder="e.g. Robert Martin"
+          />
+          @if (isFieldInvalid('author')) {
+            <span class="error-message">{{ getFieldError('author') }}</span>
+          }
+        </div>
+
+        <!-- Category -->
+        <div class="form-group" [class.error]="isFieldInvalid('category')">
+          <label for="category" class="form-label">Category <span class="required">*</span></label>
+          <select id="category" formControlName="category" class="form-control">
+            <option value="" disabled selected>Select a category</option>
+            @for (cat of categories; track cat) {
+              <option [value]="cat">{{ cat }}</option>
+            }
+          </select>
+          @if (isFieldInvalid('category')) {
+            <span class="error-message">{{ getFieldError('category') }}</span>
+          }
+        </div>
+
+        <div class="form-row">
+          <!-- Price -->
+          <div class="form-group" [class.error]="isFieldInvalid('price')">
+            <label for="price" class="form-label">Price (INR) <span class="required">*</span></label>
+            <input 
+              type="number" 
+              id="price" 
+              formControlName="price" 
+              class="form-control" 
+              placeholder="e.g. 599"
+              min="0.01"
+              step="0.01"
+            />
+            @if (isFieldInvalid('price')) {
+              <span class="error-message">{{ getFieldError('price') }}</span>
+            }
+          </div>
+
+          <!-- Published Date -->
+          <div class="form-group" [class.error]="isFieldInvalid('publishedDate')">
+            <label for="publishedDate" class="form-label">Published Date <span class="required">*</span></label>
+            <input 
+              type="date" 
+              id="publishedDate" 
+              formControlName="publishedDate" 
+              class="form-control"
+            />
+            @if (isFieldInvalid('publishedDate')) {
+              <span class="error-message">{{ getFieldError('publishedDate') }}</span>
+            }
+          </div>
+        </div>
+
+        <!-- Availability Status -->
+        <div class="form-group-toggle">
+          <label class="toggle-switch">
+            <input type="checkbox" formControlName="isAvailable" />
+            <span class="slider"></span>
+          </label>
+          <div class="toggle-details">
+            <span class="toggle-title">Available for Borrowing</span>
+            <p class="toggle-desc">Toggle whether students can borrow this book.</p>
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="form-actions">
+          <a routerLink="/books" class="btn btn-outline">Cancel</a>
+          <button 
+            type="submit" 
+            class="btn btn-primary" 
+            [disabled]="bookForm.invalid || isSaving"
+          >
+            {{ isSaving ? 'Saving...' : (isEditMode ? 'Save Changes' : 'Add Book') }}
+          </button>
+        </div>
+      </form>
+    }
+  </div>
+</div>

@@ -1,0 +1,146 @@
+<div class="container animate-fade-in">
+  <div class="list-header">
+    <div>
+      <h1 class="page-title">Book Directory</h1>
+      <p class="page-subtitle">Manage, view, and organize the library's catalog.</p>
+    </div>
+    @if (allBooks.length > 0) {
+      <div class="search-container">
+        <div class="search-wrapper">
+          <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input 
+            type="text" 
+            class="search-input" 
+            placeholder="Search by title, author, category..." 
+            [(ngModel)]="searchQuery"
+            (input)="filterBooks()"
+          />
+          @if (searchQuery) {
+            <button class="clear-search-btn" (click)="clearSearch()" title="Clear Search">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          }
+        </div>
+      </div>
+    }
+  </div>
+
+  @if (isLoading) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading books from the library system...</p>
+    </div>
+  } @else if (errorMessage) {
+    <div class="error-state">
+      <span class="error-icon">⚠️</span>
+      <p>{{ errorMessage }}</p>
+      <button class="btn btn-outline" (click)="loadBooks()">Try Again</button>
+    </div>
+  } @else if (allBooks.length === 0) {
+    <div class="empty-state">
+      <span class="empty-icon">📚</span>
+      <h3>No books found</h3>
+      <p>The library catalogue is currently empty. Get started by adding a new book.</p>
+      <a routerLink="/add-book" class="btn btn-primary">Add Book</a>
+    </div>
+  } @else if (books.length === 0) {
+    <div class="no-results-state">
+      <span class="no-results-icon">🔍</span>
+      <h3>No matches found</h3>
+      <p>We couldn't find any books matching "{{ searchQuery }}". Try checking your spelling or searching for a different keyword.</p>
+      <button class="btn btn-outline" (click)="clearSearch()">Clear Search</button>
+    </div>
+  } @else {
+    <div class="table-container">
+      <table class="book-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Author</th>
+            <th>Category</th>
+            <th>Price</th>
+            <th>Status</th>
+            <th class="actions-header">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (book of books; track book.id) {
+            <tr class="book-row">
+              <td class="book-id">#{{ book.id }}</td>
+              <td class="book-title-cell">
+                <span class="book-title">{{ book.title }}</span>
+              </td>
+              <td>{{ book.author }}</td>
+              <td><span class="category-badge">{{ book.category }}</span></td>
+              <td class="book-price">{{ book.price | currency:'INR':'symbol':'1.2-2' }}</td>
+              <td>
+                @if (book.isAvailable) {
+                  <span class="status-badge status-available">
+                    <span class="status-dot"></span> Available
+                  </span>
+                } @else {
+                  <span class="status-badge status-unavailable">
+                    <span class="status-dot"></span> Checked Out
+                  </span>
+                }
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <a [routerLink]="['/edit-book', book.id]" class="btn-action btn-edit" title="Edit Book">
+                    <svg class="btn-action-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                      <path d="m15 5 4 4"/>
+                    </svg>
+                    <span>Edit</span>
+                  </a>
+                  <button (click)="openDeleteConfirmation(book)" class="btn-action btn-delete" title="Delete Book">
+                    <svg class="btn-action-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      <line x1="10" y1="11" x2="10" y2="17"></line>
+                      <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- Custom Delete Confirmation Modal -->
+  @if (showConfirmModal) {
+    <div class="modal-backdrop" (click)="closeDeleteConfirmation()">
+      <div class="modal-container" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <span class="modal-warning-icon">⚠️</span>
+          <h2>Confirm Deletion</h2>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to remove this book from the library system?</p>
+          @if (selectedBookForDeletion) {
+            <div class="book-details-card">
+              <p><strong>Title:</strong> {{ selectedBookForDeletion.title }}</p>
+              <p><strong>Author:</strong> {{ selectedBookForDeletion.author }}</p>
+            </div>
+          }
+          <p class="modal-warning-text">This action is permanent and cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" (click)="closeDeleteConfirmation()">Cancel</button>
+          <button class="btn btn-danger" (click)="confirmDeletion()">Delete Book</button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

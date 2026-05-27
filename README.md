@@ -1,135 +1,116 @@
-# 📚 BookShelf Management System
+# 🛠️ Multi-Project Workspace (.NET Core & Angular)
 
-A modern, full-stack web application for managing a collection of books. The project features an **ASP.NET Core Web API (C#)** backend built with .NET 10 and an **Angular 21** frontend. 
-
----
-
-## 🏗️ Project Architecture & Tech Stack
-
-This repository is split into two main sections:
-
-### 1. Backend (`/BookAPI`)
-* **Framework:** ASP.NET Core Web API (.NET 10)
-* **Database ORM:** Entity Framework Core 10.0.8 (SQL Server LocalDB)
-* **Documentation & Testing:** Swagger / OpenAPI (via Swashbuckle)
-* **Key Features:** 
-  * Full CRUD (Create, Read, Update, Delete) endpoints.
-  * Server-side models validation (e.g., character length checks, price ranges, and a custom `[PastDate]` validator to prevent future publication dates).
-  * Database-level check constraints for data integrity.
-  * Cross-Origin Resource Sharing (CORS) configured for local development.
-
-### 2. Frontend (`/book-ui`)
-* **Framework:** Angular 21
-* **Styles:** SCSS / Custom CSS & FontAwesome Icons
-* **State & HTTP:** RxJS & Angular HttpClient
-* **Testing:** Vitest & Angular Testing Utilities
-* **Key Features:**
-  * Clean, interactive dashboard displaying all books.
-  * Dynamic form for adding and editing books with real-time validation feedback.
-  * Delete confirmations and seamless updates.
+Welcome to this monorepo/workspace featuring three modern, full-stack web applications. Each application utilizes an **ASP.NET Core Web API (.NET 10)** backend and an **Angular** frontend, demonstrating database seeding, entity validations, CRUD operations, and security protocols.
 
 ---
 
-## 📋 Prerequisites
+## 📂 Repository Contents
 
-Before running the application, make sure you have the following installed:
+This repository hosts the following three independent projects:
+
+### 1. [📚 BookShelf Management System](./) (Root Workspace Folder)
+* **Backend:** ASP.NET Core Web API (.NET 10) in `BookAPI/`
+* **Frontend:** Angular 21 in `book-ui/`
+* **Features:** Custom field validators (e.g., publish date validation), EF Core SQLite/SQL Server model constraints, and interactive book logging UI.
+* **Documentation:** Detailed instructions are provided in the section below.
+
+### 2. [📖 Library Management System](../Library%20Management%20System)
+* **Backend:** ASP.NET Core Web API (.NET 10) in `Library Management System/backend/`
+* **Frontend:** Angular 21 in `Library Management System/frontend/`
+* **Features:** Database auto-seeding, Repository pattern implementation, and clean status tracking UI.
+* **Detailed Readme:** [Library Management System README](../Library%20Management%20System/README.md)
+
+### 3. [🎬 Movie Booking Management](../Movie%20Booking%20Management)
+* **Backend:** ASP.NET Core Web API (.NET 10) in `Movie Booking Management/Backend/`
+* **Frontend:** Angular 18 in `Movie Booking Management/cine-booking/`
+* **Features:** JWT authentication, role-based authorization (`Admin`/`Customer`), and interactive grid seat-selection UI.
+* **Detailed Readme:** [Movie Booking Management README](../Movie%20Booking%20Management/README.md)
+
+---
+
+## 📋 General Workspace Prerequisites
+
+Before launching any of the applications, ensure you have the following installed on your system:
 
 1. **[.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)**
 2. **[Node.js (v18 or higher)](https://nodejs.org/)** & **npm**
-3. **SQL Server LocalDB** (usually installed automatically with Visual Studio's ".NET desktop development" or "ASP.NET and web development" workloads. Alternatively, you can run MS SQL Express LocalDB).
-4. **EF Core CLI tool** (optional, for applying migrations):
+3. **SQL Server LocalDB** (standard with Visual Studio's ".NET desktop development" workload)
+4. **Entity Framework Core CLI Tool** (required for creating/applying database migrations):
    ```bash
    dotnet tool install --global dotnet-ef
    ```
 
 ---
 
-## 🚀 Setup & Execution Guide
+## 🚀 "How To" Setup & Execution Guides
 
-### Step 1: Set Up and Run the Backend (`BookAPI`)
+Below are the instructions to run each system. You must run the backend and frontend of a project in separate terminal windows.
 
-1. Open your terminal and navigate to the backend folder:
-   ```bash
-   cd BookAPI
-   ```
+### Project A: BookShelf Management System
 
-2. Restore the required NuGet packages:
-   ```bash
-   dotnet restore
-   ```
-
-3. **Apply Database Migrations:**
-   Run the following command to create the database (`BookDB`) and apply the tables and check constraints:
-   ```bash
-   dotnet ef database update
-   ```
-
-4. **Run the API:**
-   Start the backend server:
-   ```bash
-   dotnet run
-   ```
-   * By default, the API will be available at: `http://localhost:5193`
-   * You can access the **Swagger interactive documentation** at: **`http://localhost:5193/swagger`**
-
----
-
-### Step 2: Set Up and Run the Frontend (`book-ui`)
-
-1. Open a new terminal window and navigate to the frontend folder:
-   ```bash
-   cd book-ui
-   ```
-
-2. Install the npm packages and dependencies:
-   ```bash
-   npm install
-   ```
-
-3. **Run the Angular App:**
-   Start the development server:
-   ```bash
-   npm run start
-   ```
-   *(or `ng serve`)*
-
-4. Open your browser and navigate to **`http://localhost:4200`** to view the application.
-
----
-
-## 🧪 Running Tests
-
-* **Backend Tests:** Run dotnet test suite (if applicable):
-  ```bash
-  dotnet test
-  ```
-* **Frontend Tests:** Run Vitest unit tests:
-  ```bash
-  cd book-ui
-  npm run test
-  ```
-
----
-
-## 📁 Repository Structure
-
-```text
-BookShelf Management System/
-├── README.md               # Main project documentation
-├── .gitignore              # Standard git ignore rules (Node & .NET)
-├── BookAPI/                # C# .NET 10.0 Backend
-│   ├── Controllers/        # API Controllers (BooksController)
-│   ├── Data/               # DB Context configuration (AppDbContext)
-│   ├── Migrations/         # EF Core migrations
-│   ├── Models/             # Entity models (Book)
-│   ├── Repositories/       # Database access layers
-│   ├── Program.cs          # API entry point & services setup
-│   └── BookAPI.csproj      # Backend project configuration
-└── book-ui/                # Angular 21 Frontend
-    ├── src/
-    │   ├── app/
-    │   │   ├── core/       # Services & interfaces
-    │   │   ├── pages/      # Book List & Book Form components
-    │   │   └── app.routes.ts # Frontend routing rules
-    └── package.json        # Frontend configuration and npm scripts
+#### 1. Start the Backend (`BookAPI`)
+```bash
+cd BookAPI
+dotnet restore
+dotnet ef database update
+dotnet run
 ```
+* **API Port:** `http://localhost:5193`
+* **Swagger Documentation:** `http://localhost:5193/swagger`
+
+#### 2. Start the Frontend (`book-ui`)
+```bash
+cd book-ui
+npm install
+npm run start
+```
+* **Client App URL:** `http://localhost:4200`
+
+---
+
+### Project B: Library Management System
+
+#### 1. Start the Backend (`Library Management System/backend`)
+```bash
+cd "Library Management System/backend"
+dotnet restore
+dotnet run
+```
+* **API Port:** `http://localhost:5043`
+* **Swagger Documentation:** `http://localhost:5043/swagger`
+* *Note: The database `IronhideLibrary` auto-creates and seeds itself on run.*
+
+#### 2. Start the Frontend (`Library Management System/frontend`)
+```bash
+cd "Library Management System/frontend"
+npm install
+npm run start
+```
+* **Client App URL:** `http://localhost:4200`
+
+---
+
+### Project C: Movie Booking Management
+
+#### 1. Start the Backend (`Movie Booking Management/Backend`)
+```bash
+cd "Movie Booking Management/Backend"
+dotnet restore
+dotnet run
+```
+* **API Port:** `http://localhost:5231` (HTTPS at `https://localhost:7072`)
+* *Note: The database `CineBookingDb` auto-creates and seeds movies, showtimes, and an admin user: **Username:** `admin`, **Password:** `admin123`.*
+
+#### 2. Start the Frontend (`Movie Booking Management/cine-booking`)
+```bash
+cd "Movie Booking Management/cine-booking"
+npm install
+npm run start
+```
+* **Client App URL:** `http://localhost:4200`
+
+---
+
+## 🧪 Testing the Apps
+* **Backend C# Projects:** Run `dotnet test` from any of the API root folders.
+* **Frontend Angular Projects:** Run `npm run test` or `ng test` from any of the frontend folders.

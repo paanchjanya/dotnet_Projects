@@ -1,0 +1,12 @@
+.main-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .main-content {
+    padding: 1rem;
+  }
+}
