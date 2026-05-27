@@ -1,0 +1,105 @@
+<div class="form-container">
+  <div class="form-card">
+
+    <div class="form-header">
+      <a routerLink="/books" class="back-btn">
+        <i class="fas fa-arrow-left"></i>
+      </a>
+      <div>
+        <h2>{{ isEditMode ? 'Edit Book' : 'Add New Book' }}</h2>
+        <p>{{ isEditMode ? 'Update the book details below' : 'Fill in the details to add a book' }}</p>
+      </div>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+      <!-- Title -->
+      <div class="form-group">
+        <label>Title</label>
+        <input formControlName="title" type="text" placeholder="e.g. Clean Code" />
+        <span class="error" *ngIf="f['title'].touched && f['title'].errors?.['required']">
+          Title is required.
+        </span>
+        <span class="error" *ngIf="f['title'].touched && f['title'].errors?.['whitespace']">
+          Title cannot be blank or spaces only.
+        </span>
+        <span class="error" *ngIf="f['title'].touched && f['title'].errors?.['minlength']">
+          Title must be at least 2 characters.
+        </span>
+        <span class="error" *ngIf="f['title'].touched && f['title'].errors?.['maxlength']">
+          Title cannot exceed 150 characters.
+        </span>
+      </div>
+
+      <!-- Author -->
+      <div class="form-group">
+        <label>Author</label>
+        <input formControlName="author" type="text" placeholder="e.g. Robert C. Martin" />
+        <span class="error" *ngIf="f['author'].touched && f['author'].errors?.['required']">
+          Author is required.
+        </span>
+        <span class="error" *ngIf="f['author'].touched && f['author'].errors?.['notAlphabetic']">
+          Author name must contain letters only.
+        </span>
+        <span class="error" *ngIf="f['author'].touched && f['author'].errors?.['minlength']">
+          Author name must be at least 2 characters.
+        </span>
+        <span class="error" *ngIf="f['author'].touched && f['author'].errors?.['maxlength']">
+          Author name cannot exceed 100 characters.
+        </span>
+      </div>
+
+      <div class="form-row">
+
+        <!-- Genre -->
+        <div class="form-group">
+          <label>Genre</label>
+          <select formControlName="genre">
+            <option value="" disabled>Select genre</option>
+            <option *ngFor="let g of genres" [value]="g">{{ g }}</option>
+          </select>
+          <span class="error" *ngIf="f['genre'].touched && f['genre'].errors?.['required']">
+            Genre is required.
+          </span>
+        </div>
+
+        <!-- Price -->
+        <div class="form-group">
+          <label>Price ($)</label>
+          <input formControlName="price" type="number" placeholder="e.g. 39.99" step="0.01" />
+          <span class="error" *ngIf="f['price'].touched && f['price'].errors?.['required']">
+            Price is required.
+          </span>
+          <span class="error" *ngIf="f['price'].touched && f['price'].errors?.['min']">
+            Price cannot be less than $0.00.
+          </span>
+          <span class="error" *ngIf="f['price'].touched && f['price'].errors?.['max']">
+            Price cannot exceed $9999.99.
+          </span>
+        </div>
+
+      </div>
+
+      <!-- Published Date -->
+      <div class="form-group">
+        <label>Published Date</label>
+        <input formControlName="publishedDate" type="date" [max]="today" />
+        <span class="error" *ngIf="f['publishedDate'].touched && f['publishedDate'].errors?.['required']">
+          Published date is required.
+        </span>
+        <span class="error" *ngIf="f['publishedDate'].touched && f['publishedDate'].errors?.['futureDate']">
+          Published date cannot be a future date.
+        </span>
+      </div>
+
+      <div class="form-actions">
+        <a routerLink="/books" class="btn-cancel">Cancel</a>
+        <button type="submit" class="btn-submit" [disabled]="submitting">
+          <i class="fas" [class.fa-plus]="!isEditMode" [class.fa-save]="isEditMode"></i>
+          {{ submitting ? 'Saving...' : isEditMode ? 'Update Book' : 'Add Book' }}
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>

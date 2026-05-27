@@ -1,0 +1,56 @@
+<div class="book-card">
+  <div class="card-header">
+    <div class="genre-badge" [style.background]="getGenreColor(book.genre)">
+      {{ book.genre }}
+    </div>
+    <div class="card-actions">
+      <a [routerLink]="['/books/edit', book.id]" class="btn-icon edit">
+        <i class="fas fa-pen"></i>
+      </a>
+      <button class="btn-icon delete" (click)="openDeleteModal()">
+        <i class="fas fa-trash"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="card-body">
+    <h3 class="book-title">{{ book.title }}</h3>
+    <p class="book-author">
+      <i class="fas fa-user-pen"></i> {{ book.author }}
+    </p>
+    <div class="book-meta">
+      <span class="price">
+        <i class="fas fa-tag"></i> ${{ book.price | number:'1.2-2' }}
+      </span>
+      <span class="date">
+        <i class="fas fa-calendar"></i>
+        {{ book.publishedDate | date:'MMM d, y' }}
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ Custom Delete Modal -->
+<div class="modal-overlay" *ngIf="showDeleteModal" (click)="cancelDelete()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+
+    <div class="modal-icon">
+      <i class="fas fa-trash-can"></i>
+    </div>
+
+    <h3>Delete Book</h3>
+    <p>Are you sure you want to delete</p>
+    <span class="book-name">"{{ book.title }}"</span>
+    <p class="warning">This action cannot be undone.</p>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" (click)="cancelDelete()">
+        <i class="fas fa-xmark"></i> Cancel
+      </button>
+      <button class="btn-confirm" (click)="confirmDelete()">
+        <i class="fas fa-trash"></i> Yes, Delete
+      </button>
+    </div>
+
+  </div>
+</div>

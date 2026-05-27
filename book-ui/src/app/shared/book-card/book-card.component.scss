@@ -1,0 +1,259 @@
+.book-card {
+  background: #1e293b;
+  border-radius: 12px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  border: 1px solid #334155;
+  position: relative;
+  z-index: 0;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 13px;
+    background: conic-gradient(
+      from var(--angle, 0deg),
+      #4285f4,
+      #ea4335,
+      #fbbc05,
+      #34a853,
+      #4285f4
+    );
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    animation: rotate-gradient 4s linear infinite paused;
+  }
+
+  &:hover::before {
+    opacity: 0.55;
+    animation-play-state: running;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    background: #1e293b;
+    border-radius: 11px;
+    z-index: -1;
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+
+  .card-header {
+    padding: 1rem 1rem 0.6rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .genre-badge {
+    padding: 0.2rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 0.4rem;
+  }
+
+  .btn-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.75rem;
+    text-decoration: none;
+    transition: background 0.2s;
+
+    &.edit {
+      background: #1d4ed820;
+      color: #60a5fa;
+      &:hover { background: #1d4ed840; }
+    }
+
+    &.delete {
+      background: #dc262620;
+      color: #f87171;
+      &:hover { background: #dc262640; }
+    }
+  }
+
+  .card-body {
+    padding: 0.8rem 1rem 1.2rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .book-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin: 0 0 0.4rem;
+    line-height: 1.4;
+  }
+
+  .book-author {
+    color: #94a3b8;
+    font-size: 0.88rem;
+    margin: 0 0 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+
+    i { color: #6366f1; }
+  }
+
+  .book-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.82rem;
+    color: #64748b;
+
+    span {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .price { color: #34d399; font-weight: 600; }
+    i { font-size: 0.75rem; }
+  }
+}
+
+// ✅ Modal Overlay
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.25s ease;
+
+  .modal-icon {
+    width: 56px;
+    height: 56px;
+    background: #dc262615;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.2rem;
+
+    i {
+      font-size: 1.4rem;
+      color: #f87171;
+    }
+  }
+
+  h3 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin: 0 0 0.5rem;
+  }
+
+  p {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    margin: 0;
+  }
+
+  .book-name {
+    display: block;
+    color: #f1f5f9;
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin: 0.3rem 0 0.8rem;
+  }
+
+  .warning {
+    color: #475569;
+    font-size: 0.78rem;
+    margin-bottom: 1.8rem;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 0.75rem;
+
+    button {
+      flex: 1;
+      padding: 0.65rem;
+      border-radius: 10px;
+      border: none;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      transition: background 0.2s;
+    }
+
+    .btn-cancel {
+      background: #0f172a;
+      color: #94a3b8;
+      border: 1px solid #334155;
+      &:hover { background: #1e293b; color: #f1f5f9; }
+    }
+
+    .btn-confirm {
+      background: #dc2626;
+      color: #fff;
+      &:hover { background: #b91c1c; }
+    }
+  }
+}
+
+// ✅ Animations
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes rotate-gradient {
+  to { --angle: 360deg; }
+}

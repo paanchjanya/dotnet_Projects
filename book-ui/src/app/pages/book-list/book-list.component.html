@@ -1,0 +1,40 @@
+<div class="list-container">
+
+  <div class="page-header">
+    <div>
+      <h1>Book Collection</h1>
+      <p>{{ filtered.length }} book{{ filtered.length !== 1 ? 's' : '' }} found</p>
+    </div>
+    <a routerLink="/books/new" class="btn-primary">
+      <i class="fas fa-plus"></i> Add New Book
+    </a>
+  </div>
+
+  <div class="filters">
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" placeholder="Search by title or author..." [(ngModel)]="searchQuery" (input)="applyFilter()" />
+      <button class="clear-btn" *ngIf="searchQuery" (click)="clearSearch()" title="Clear search">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <select [(ngModel)]="selectedGenre" (change)="applyFilter()">
+      <option value="">All Genres</option>
+      <option *ngFor="let g of genres" [value]="g">{{ g }}</option>
+    </select>
+  </div>
+
+  <div *ngIf="loading" class="loader">
+    <i class="fas fa-spinner fa-spin"></i> Loading books...
+  </div>
+
+  <div *ngIf="!loading && filtered.length === 0" class="empty-state">
+    <i class="fas fa-book-open"></i>
+    <p>No books found. Try a different search or add one!</p>
+  </div>
+
+  <div class="book-grid" *ngIf="!loading && filtered.length > 0">
+    <app-book-card *ngFor="let book of filtered" [book]="book" (deleted)="onDelete($event)" />
+  </div>
+
+</div>

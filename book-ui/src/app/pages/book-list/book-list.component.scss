@@ -1,0 +1,145 @@
+.list-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2.5rem 2rem;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+
+  h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin: 0;
+  }
+
+  p {
+    color: #64748b;
+    margin: 0.2rem 0 0;
+    font-size: 0.9rem;
+  }
+}
+
+.btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  padding: 0.65rem 1.4rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #4f46e5;
+  }
+}
+
+.filters {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+
+  .search-box {
+    flex: 1;
+    position: relative;
+
+    i.fa-search {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #475569;
+      pointer-events: none;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.7rem 2.8rem 0.7rem 2.8rem; // 👈 right padding for clear btn
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      color: #f1f5f9;
+      font-size: 0.9rem;
+      outline: none;
+      box-sizing: border-box;
+
+      &:focus {
+        border-color: #6366f1;
+      }
+
+      &::placeholder {
+        color: #475569;
+      }
+    }
+
+    .clear-btn {
+      position: absolute;
+      right: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: #475569;
+      cursor: pointer;
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      transition: color 0.2s;
+
+      &:hover {
+        color: #f87171;
+      }
+
+      // 👈 turns red on hover
+    }
+  }
+
+  select {
+    padding: 0.7rem 1.2rem;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    color: #f1f5f9;
+    font-size: 0.9rem;
+    outline: none;
+    cursor: pointer;
+    min-width: 160px;
+
+    &:focus {
+      border-color: #6366f1;
+    }
+  }
+}
+
+.book-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.loader,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem;
+  color: #475569;
+  font-size: 1rem;
+  gap: 1rem;
+
+  i {
+    font-size: 2.5rem;
+    color: #334155;
+  }
+}
