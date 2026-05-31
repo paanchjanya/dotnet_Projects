@@ -1,0 +1,133 @@
+@page "/register"
+@layout MainLayout
+@attribute [AllowAnonymous]
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<div class="auth-container">
+    <div class="glass-panel auth-card">
+        <div class="auth-header">
+            <div class="sidebar-logo" style="margin: 0 auto 1rem auto; width: 48px; height: 48px; font-size: 1.75rem;">T</div>
+            <h1 class="auth-title">Create Account</h1>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">Join TaskFlow to organize your project goals</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div style="background-color: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger); color: var(--danger); padding: 0.75rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.9rem; text-align: center;">
+                @_errorMessage
+            </div>
+        }
+
+        @if (_registrationSuccess)
+        {
+            <div style="background-color: rgba(16, 185, 129, 0.15); border: 1px solid var(--success); color: var(--success); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.95rem; text-align: center;">
+                Registration successful! Redirecting to login...
+            </div>
+        }
+        else
+        {
+            <EditForm Model="@_registerModel" OnValidSubmit="HandleRegister">
+                <DataAnnotationsValidator />
+
+                <div class="form-group">
+                    <label class="form-label" for="displayName">Full Name</label>
+                    <InputText id="displayName" class="form-input" @bind-Value="_registerModel.DisplayName" placeholder="John Doe" />
+                    <ValidationMessage For="@(() => _registerModel.DisplayName)" style="color: var(--danger); font-size: 0.8rem; margin-top: 0.25rem; display: block;" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="email">Email Address</label>
+                    <InputText id="email" class="form-input" @bind-Value="_registerModel.Email" placeholder="name@company.com" />
+                    <ValidationMessage For="@(() => _registerModel.Email)" style="color: var(--danger); font-size: 0.8rem; margin-top: 0.25rem; display: block;" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <InputText id="password" type="password" class="form-input" @bind-Value="_registerModel.Password" placeholder="••••••••" />
+                    <ValidationMessage For="@(() => _registerModel.Password)" style="color: var(--danger); font-size: 0.8rem; margin-top: 0.25rem; display: block;" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="avatarUrl">Avatar Image URL (Optional)</label>
+                    <InputText id="avatarUrl" class="form-input" @bind-Value="_registerModel.AvatarUrl" placeholder="https://..." />
+                </div>
+
+                <button type="submit" class="btn-premium" style="margin-top: 1rem;" disabled="@_isSubmitting">
+                    @if (_isSubmitting)
+                    {
+                        <span>Creating Account...</span>
+                    }
+                    else
+                    {
+                        <span>Register</span>
+                    }
+                </button>
+            </EditForm>
+        }
+
+        <div style="text-align: center; margin-top: 2rem; font-size: 0.9rem; color: var(--text-muted);">
+            Already have an account? <a href="login" style="color: var(--primary); font-weight: 600;">Sign In here</a>
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterModel _registerModel = new();
+    private string? _errorMessage;
+    private bool _isSubmitting;
+    private bool _registrationSuccess;
+
+    private async Task HandleRegister()
+    {
+        _isSubmitting = true;
+        _errorMessage = null;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/auth/register", _registerModel);
+            if (response.IsSuccessStatusCode)
+            {
+                _registrationSuccess = true;
+                StateHasChanged();
+                await Task.Delay(2000);
+                Navigation.NavigateTo("login");
+            }
+            else
+            {
+                var errorObj = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+                _errorMessage = errorObj?.Message ?? "Registration failed. Verify password complexity.";
+            }
+        }
+        catch (Exception)
+        {
+            _errorMessage = "Failed to connect to the authentication server.";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    public class RegisterModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Full Name is required")]
+        [System.ComponentModel.DataAnnotations.StringLength(50, ErrorMessage = "Name must be less than 50 characters")]
+        public string DisplayName { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Email is required")]
+        [System.ComponentModel.DataAnnotations.EmailAddress(ErrorMessage = "Invalid email format")]
+        public string Email { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Password is required")]
+        [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 4, ErrorMessage = "Password must be at least 4 characters")]
+        public string Password { get; set; } = string.Empty;
+
+        public string? AvatarUrl { get; set; }
+    }
+
+    public class ErrorResponse
+    {
+        public string Message { get; set; } = string.Empty;
+    }
+}

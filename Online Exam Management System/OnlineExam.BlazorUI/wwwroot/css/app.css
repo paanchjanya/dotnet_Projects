@@ -1,0 +1,327 @@
+html, body, #app {
+    min-height: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #F9F9FF;
+    color: #2D2D3A;
+}
+
+a {
+    color: #6C63FF;
+}
+
+.exam-shell {
+    background: #F9F9FF;
+    min-height: 100vh;
+}
+
+.exam-shell.dark {
+    background: #171722;
+}
+
+.top-bar {
+    background: #6C63FF;
+    color: #fff;
+}
+
+.brand {
+    font-weight: 800;
+}
+
+.side-nav {
+    border-right: 1px solid rgba(108, 99, 255, 0.16);
+    padding: 72px 12px 16px;
+}
+
+.nav-menu {
+    padding: 12px;
+}
+
+.main-content {
+    padding: 96px 32px 32px;
+}
+
+.fade-page {
+    animation: fade-in 260ms ease both;
+}
+
+@keyframes fade-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.page-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.auth-page {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+}
+
+.particle-field {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(#6C63FF 1px, transparent 1px), radial-gradient(#43E895 1px, transparent 1px);
+    background-position: 0 0, 24px 24px;
+    background-size: 48px 48px;
+    opacity: 0.18;
+    animation: drift 18s linear infinite;
+}
+
+@keyframes drift {
+    to { transform: translate3d(-48px, -48px, 0); }
+}
+
+.auth-panel {
+    width: min(520px, 100%);
+    padding: 32px;
+    border-radius: 8px;
+    position: relative;
+    border: 1px solid rgba(108, 99, 255, 0.14);
+}
+
+.form-stack {
+    display: grid;
+    gap: 16px;
+    margin: 24px 0;
+}
+
+.exam-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
+}
+
+.exam-card, .question-card, .leaderboard, .result-summary, .chart-panel, .admin-form {
+    border: 1px solid rgba(108, 99, 255, 0.12);
+    border-radius: 8px;
+    padding: 22px;
+}
+
+.hover-lift {
+    transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.hover-lift:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 18px 45px rgba(108, 99, 255, 0.16);
+}
+
+.exam-meta, .exam-actions, .admin-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    margin: 18px 0;
+}
+
+.take-exam:focus {
+    outline: none;
+}
+
+.exam-toolbar {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 18px;
+    align-items: center;
+    margin-bottom: 22px;
+}
+
+.progress-wrap {
+    display: grid;
+    gap: 6px;
+}
+
+.exam-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 22px;
+    align-items: start;
+}
+
+.question-text {
+    margin: 10px 0 20px;
+}
+
+.option-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.answer-option {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 42px 1fr;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(107, 107, 122, 0.22);
+    background: #fff;
+    color: #2D2D3A;
+    text-align: left;
+    transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.answer-option:hover, .answer-option.selected {
+    transform: scale(1.01);
+    border-color: #6C63FF;
+    box-shadow: 0 12px 28px rgba(108, 99, 255, 0.14);
+}
+
+.answer-option.selected .option-key {
+    background: #43E895;
+    color: #102418;
+}
+
+.option-key {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: #F9F9FF;
+    color: #6C63FF;
+    font-weight: 800;
+}
+
+.question-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.leaderboard {
+    position: sticky;
+    top: 88px;
+}
+
+.result-summary {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 18px;
+    margin-bottom: 22px;
+}
+
+.chart-panel {
+    min-height: 280px;
+}
+
+.review-table {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.option-editor {
+    display: grid;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.option-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 12px;
+    align-items: center;
+}
+
+@media (max-width: 900px) {
+    .main-content {
+        padding: 88px 16px 24px;
+    }
+
+    .page-head, .exam-toolbar {
+        grid-template-columns: 1fr;
+        display: grid;
+    }
+
+    .exam-workspace {
+        grid-template-columns: 1fr;
+    }
+
+    .leaderboard {
+        position: static;
+    }
+
+    .option-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Loading Progress Spinner Styles */
+.loading-progress {
+    position: relative;
+    display: block;
+    width: 6rem;
+    height: 6rem;
+    margin: 20vh auto 2rem auto;
+}
+
+.loading-progress circle {
+    fill: none;
+    stroke: rgba(108, 99, 255, 0.15);
+    stroke-width: 0.5rem;
+    transform-origin: 50% 50%;
+    transform: rotate(-90deg);
+}
+
+.loading-progress circle:last-child {
+    stroke: #6C63FF; /* primary theme color */
+    stroke-linecap: round;
+    stroke-dasharray: 283;
+    stroke-dashoffset: 75; /* initial offset, rotates on loading */
+    animation: loading-spinner 1.4s linear infinite;
+}
+
+.loading-progress-text {
+    position: relative;
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    font-family: Inter, sans-serif;
+    color: #6C63FF;
+}
+
+.loading-progress-text:after {
+    content: "Loading Exam Platform...";
+    animation: text-pulse 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes loading-spinner {
+    0% {
+        transform: rotate(-90deg);
+        stroke-dashoffset: 283;
+    }
+    50% {
+        transform: rotate(90deg);
+        stroke-dashoffset: 70;
+    }
+    100% {
+        transform: rotate(270deg);
+        stroke-dashoffset: 283;
+    }
+}
+
+@keyframes text-pulse {
+    from { opacity: 0.6; }
+    to { opacity: 1; }
+}
+

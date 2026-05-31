@@ -1,0 +1,215 @@
+@page "/cart"
+@inject CartService CartService
+@inject ApiService ApiService
+@inject NavigationManager NavigationManager
+
+<div class="fade-in mt-4 mb-5">
+    <h1 class="display-6 font-outfit fw-bold mb-4">Your Shopping Bag</h1>
+
+    @if (cartItems == null || cartItems.Count == 0)
+    {
+        <div class="text-center py-5 border rounded-3 bg-white shadow-sm">
+            <span class="bi bi-bag-x fs-1 text-secondary mb-3 d-inline-block"></span>
+            <h3>Your cart is empty</h3>
+            <p class="text-secondary">Looks like you haven't added any books to your bag yet.</p>
+            <a href="/" class="btn btn-primary mt-2">Start Browsing</a>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            <!-- Left Column: Cart Items -->
+            <div class="col-lg-8">
+                <div class="cart-card">
+                    @foreach (var item in cartItems)
+                    {
+                        <div class="cart-item-row">
+                            <img src="@GetAbsoluteImageUrl(item.Book.CoverImageUrl)" alt="@item.Book.Title" class="cart-item-img" />
+                            <div class="cart-item-details">
+                                <h5 class="cart-item-title font-outfit">@item.Book.Title</h5>
+                                <p class="cart-item-author">by @item.Book.Author</p>
+                                <span class="badge bg-light text-secondary mt-1">@item.Book.Category</span>
+                            </div>
+                            <div class="d-flex flex-column align-items-end justify-content-between gap-3">
+                                <div class="fw-bold fs-5 text-dark">$@((item.Book.Price * item.Quantity).ToString("F2"))</div>
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="cart-item-qty">
+                                        <button class="qty-btn" @onclick="() => UpdateQuantity(item.Book.Id, item.Quantity - 1)">-</button>
+                                        <span class="fw-bold px-1" style="min-width: 20px; text-align: center;">@item.Quantity</span>
+                                        <button class="qty-btn" @onclick="() => UpdateQuantity(item.Book.Id, item.Quantity + 1)">+</button>
+                                    </div>
+                                    <button class="btn btn-sm btn-link text-danger p-0" title="Remove" @onclick="() => RemoveItem(item.Book.Id)">
+                                        <span class="bi bi-trash-fill fs-5"></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div class="d-flex justify-content-between mt-3">
+                    <a href="/" class="btn btn-light"><span class="bi bi-arrow-left me-1"></span> Continue Shopping</a>
+                    <button class="btn btn-outline-danger" @onclick="ClearCart"><span class="bi bi-trash me-1"></span> Clear Bag</button>
+                </div>
+            </div>
+
+            <!-- Right Column: Checkout Summary -->
+            <div class="col-lg-4">
+                <div class="cart-card bg-light border-0 shadow-sm p-4">
+                    <h4 class="font-outfit fw-bold mb-4">Order Summary</h4>
+                    
+                    <div class="d-flex justify-content-between mb-3 text-secondary">
+                        <span>Items Count:</span>
+                        <span class="fw-semibold text-dark">@totalCount</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3 text-secondary">
+                        <span>Shipping:</span>
+                        <span class="text-success fw-semibold">FREE</span>
+                    </div>
+                    <hr />
+                    <div class="d-flex justify-content-between mb-4">
+                        <span class="fs-5 fw-bold text-dark">Total Amount:</span>
+                        <span class="fs-4 fw-extrabold text-primary font-outfit">$@totalAmount.ToString("F2")</span>
+                    </div>
+
+                    <AuthorizeView>
+                        <Authorized>
+                            <h5 class="fw-bold text-dark font-outfit mb-3">Shipping Address</h5>
+                            @if (!string.IsNullOrEmpty(errorMessage))
+                            {
+                                <div class="alert alert-danger py-2 px-3 small mb-3">
+                                    <span class="bi bi-exclamation-circle me-1"></span> @errorMessage
+                                </div>
+                            }
+                            @if (isOrdering)
+                            {
+                                <div class="d-flex align-items-center justify-content-center py-3">
+                                    <div class="spinner-border text-primary spinner-border-sm me-2" role="status"></div>
+                                    <span class="text-secondary small">Processing order...</span>
+                                </div>
+                            }
+                            else if (orderPlaced)
+                            {
+                                <div class="alert alert-success py-2 px-3 small text-center mb-3">
+                                    <span class="bi bi-check-circle me-1"></span> Order placed! Redirecting...
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="mb-4">
+                                    <textarea class="form-control" rows="3" 
+                                              placeholder="Enter your full street address, city, state, zip code..." 
+                                              @bind="shippingAddress"></textarea>
+                                </div>
+                                <button class="btn btn-primary btn-lg w-100 py-3 shadow" @onclick="PlaceOrder">
+                                    <span class="bi bi-bag-check-fill me-2"></span> Complete Checkout
+                                </button>
+                            }
+                        </Authorized>
+                        <NotAuthorized>
+                            <div class="bg-white border rounded-3 p-3 text-center mb-3">
+                                <span class="bi bi-lock-fill text-warning fs-3 mb-2 d-inline-block"></span>
+                                <h6 class="fw-bold text-dark mb-1">Authorization Required</h6>
+                                <p class="small text-secondary mb-3">Please sign in to your customer account to complete your purchase.</p>
+                                <a href="/login" class="btn btn-sm btn-primary px-4 py-2">Log In to Checkout</a>
+                            </div>
+                        </NotAuthorized>
+                    </AuthorizeView>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<CartItem>? cartItems;
+    private int totalCount = 0;
+    private decimal totalAmount = 0;
+    private string shippingAddress = string.Empty;
+    private string errorMessage = string.Empty;
+    private bool isOrdering = false;
+    private bool orderPlaced = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshCart();
+    }
+
+    private async Task RefreshCart()
+    {
+        cartItems = await CartService.GetCartItemsAsync();
+        totalCount = await CartService.GetTotalCountAsync();
+        totalAmount = await CartService.GetTotalAmountAsync();
+        StateHasChanged();
+    }
+
+    private async Task UpdateQuantity(int bookId, int quantity)
+    {
+        await CartService.UpdateQuantityAsync(bookId, quantity);
+        await RefreshCart();
+    }
+
+    private async Task RemoveItem(int bookId)
+    {
+        await CartService.RemoveItemAsync(bookId);
+        await RefreshCart();
+    }
+
+    private async Task ClearCart()
+    {
+        await CartService.ClearCartAsync();
+        await RefreshCart();
+    }
+
+    private async Task PlaceOrder()
+    {
+        if (string.IsNullOrWhiteSpace(shippingAddress))
+        {
+            errorMessage = "Please enter a valid shipping address.";
+            return;
+        }
+
+        errorMessage = string.Empty;
+        isOrdering = true;
+
+        var cart = await CartService.GetCartItemsAsync();
+        var orderCreate = new OrderCreate
+        {
+            ShippingAddress = shippingAddress,
+            Items = cart.Select(i => new OrderItemCreate
+            {
+                BookId = i.Book.Id,
+                Quantity = i.Quantity
+            }).ToList()
+        };
+
+        var success = await ApiService.CreateOrderAsync(orderCreate);
+        isOrdering = false;
+
+        if (success)
+        {
+            orderPlaced = true;
+            await CartService.ClearCartAsync();
+            StateHasChanged();
+            await Task.Delay(2000);
+            NavigationManager.NavigateTo("/my-orders");
+        }
+        else
+        {
+            errorMessage = "Failed to place order. One or more items might be out of stock.";
+        }
+    }
+
+    private string GetAbsoluteImageUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url))
+        {
+            return "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&q=80&w=400";
+        }
+        if (url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        {
+            return url;
+        }
+        return $"{ApiService.BaseAddress.TrimEnd('/')}/{url.TrimStart('/')}";
+    }
+}

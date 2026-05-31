@@ -1,0 +1,300 @@
+@page "/apply-leave"
+@attribute [Authorize]
+@using System.Net.Http.Headers
+@inject LeaveService LeaveService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Apply Leave - LeaveFlow</PageTitle>
+
+<div class="fade-in">
+    <h2 class="mb-4" style="font-weight: 700; color: var(--text-primary);">Apply for Leave</h2>
+
+    <div class="profile-grid">
+        <!-- Left Side: Balances & Validation Info -->
+        <div>
+            <div class="section-card" style="position: sticky; top: 20px;">
+                <h3 class="section-title">Leave Entitlement Summary</h3>
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    @if (loadingBalances)
+                    {
+                        <p class="text-muted">Loading balances...</p>
+                    }
+                    else
+                    {
+                        @foreach (var bal in balances)
+                        {
+                            var activeType = bal.LeaveTypeId == leaveModel.LeaveTypeId;
+                            <div style="padding: 1rem; border-radius: var(--radius); border: 1px solid @(activeType ? "var(--primary)" : "var(--border)"); background: @(activeType ? "rgba(20, 184, 166, 0.03)" : "var(--surface)"); transition: var(--transition);">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span style="font-weight: 600; font-size: 0.95rem; color: @(activeType ? "var(--primary-dark)" : "var(--text-primary)");">
+                                        @bal.LeaveType?.Name
+                                    </span>
+                                    @if (bal.LeaveType?.RequiresAttachment == true)
+                                    {
+                                        <span class="status-badge" style="font-size: 0.65rem; background-color: rgba(239, 68, 68, 0.1); color: var(--danger); padding: 0.1rem 0.5rem;">
+                                            Attachment Required
+                                        </span>
+                                    }
+                                </div>
+                                <div style="display: flex; gap: 1rem; font-size: 0.8rem; color: var(--text-secondary);">
+                                    <span>Available: <strong>@bal.AvailableDays</strong></span>
+                                    <span>Allocated: @bal.AllocatedDays</span>
+                                    <span>Pending: @bal.PendingDays</span>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+
+                @if (selectedBalance != null)
+                {
+                    <div class="mt-4 p-3" style="background: rgba(2, 132, 199, 0.05); border-radius: var(--radius); border: 1px solid rgba(2, 132, 199, 0.1); font-size: 0.85rem;">
+                        <span style="font-weight: 700; color: var(--secondary); display: block; margin-bottom: 0.25rem;">📝 Selection Status</span>
+                        <span>You are applying for <strong>@selectedBalance.LeaveType?.Name</strong>. You have <strong>@selectedBalance.AvailableDays</strong> days available.</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Right Side: Apply Form -->
+        <div class="section-card">
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="mb-4" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--danger); padding: 0.85rem 1rem; border-radius: 10px; font-size: 0.85rem;">
+                    <i class="bi bi-exclamation-triangle-fill"></i> @errorMessage
+                </div>
+            }
+
+            @if (showSuccessMessage)
+            {
+                <div class="text-center py-4">
+                    <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+                    <h3 class="mt-3" style="font-weight: 700;">Leave Applied Successfully!</h3>
+                    <p class="text-secondary">Your request has been submitted to your manager. You can check its status on the dashboard.</p>
+                    <div class="mt-4">
+                        <a href="dashboard" class="btn btn-primary">Go to Dashboard</a>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <EditForm Model="@leaveModel" OnValidSubmit="HandleSubmit">
+                    <DataAnnotationsValidator />
+
+                    <!-- Leave Type Selection -->
+                    <div class="form-group mb-3">
+                        <label class="form-label" for="leaveType">Leave Type</label>
+                        <select id="leaveType" class="form-control" @bind="leaveModel.LeaveTypeId">
+                            @foreach (var type in leaveTypes)
+                            {
+                                <option value="@type.Id">@type.Name</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Dates Row -->
+                    <div class="row mb-3">
+                        <div class="col form-group">
+                            <label class="form-label" for="startDate">Start Date</label>
+                            <InputDate id="startDate" class="form-control" @bind-Value="leaveModel.StartDate" @bind-Value:after="CalculateTotalDays" />
+                        </div>
+                        <div class="col form-group">
+                            <label class="form-label" for="endDate">End Date</label>
+                            <InputDate id="endDate" class="form-control" @bind-Value="leaveModel.EndDate" @bind-Value:after="CalculateTotalDays" />
+                        </div>
+                    </div>
+
+                    <!-- Total Days Preview -->
+                    @if (totalRequestedDays > 0)
+                    {
+                        <div class="mb-3 p-3 d-flex justify-content-between align-items-center" style="background-color: var(--background); border-radius: var(--radius); border: 1px solid var(--border);">
+                            <div>
+                                <span style="font-size: 0.85rem; color: var(--text-secondary); display: block;">Total Days Requested</span>
+                                <span style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">@totalRequestedDays Days</span>
+                            </div>
+                            @if (selectedBalance != null && totalRequestedDays > selectedBalance.AvailableDays)
+                            {
+                                <div style="color: var(--danger); font-size: 0.85rem; font-weight: 600;">
+                                    <i class="bi bi-exclamation-circle-fill"></i> Exceeds Available Balance!
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <!-- Reason -->
+                    <div class="form-group mb-3">
+                        <label class="form-label" for="reason">Reason for Leave</label>
+                        <InputTextArea id="reason" rows="3" class="form-control" @bind-Value="leaveModel.Reason" placeholder="Briefly describe the reason for your leave request..." />
+                    </div>
+
+                    <!-- Document Upload (Conditional) -->
+                    @if (requiresAttachment)
+                    {
+                        <div class="form-group mb-4">
+                            <label class="form-label">Supporting Document (PDF, DOCX)</label>
+                            <div class="file-drag-area" @onclick="TriggerFileInput">
+                                <i class="bi bi-cloud-arrow-up file-drag-icon"></i>
+                                <span style="display: block; font-weight: 600; font-size: 0.95rem;">
+                                    @(selectedFile != null ? selectedFile.Name : "Click to select a file")
+                                </span>
+                                <span style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                    @(selectedFile != null ? $"File size: {(selectedFile.Size / 1024.0):F2} KB" : "Upload is required for this leave type. Max size 10MB.")
+                                </span>
+                                <InputFile id="fileInput" class="d-none" OnChange="HandleFileSelected" accept=".pdf,.docx,.doc" />
+                            </div>
+                        </div>
+                    }
+
+                    <div class="d-flex gap-3 mt-4">
+                        <button type="submit" class="btn btn-primary" style="flex: 1; border-radius: 10px;" disabled="@(submitting || (selectedBalance != null && totalRequestedDays > selectedBalance.AvailableDays))">
+                            @if (submitting)
+                            {
+                                <span>Submitting Request...</span>
+                            }
+                            else
+                            {
+                                <span>Submit Leave Application</span>
+                            }
+                        </button>
+                        <a href="dashboard" class="btn btn-secondary" style="border-radius: 10px;">Cancel</a>
+                    </div>
+                </EditForm>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<LeaveTypeModel> leaveTypes = new();
+    private List<LeaveBalanceModel> balances = new();
+    private LeaveRequestForm leaveModel = new();
+    private LeaveBalanceModel? selectedBalance => balances.FirstOrDefault(b => b.LeaveTypeId == leaveModel.LeaveTypeId);
+    
+    private bool loadingBalances = true;
+    private bool requiresAttachment => leaveTypes.FirstOrDefault(t => t.Id == leaveModel.LeaveTypeId)?.RequiresAttachment ?? false;
+    
+    private decimal totalRequestedDays = 1;
+    private IBrowserFile? selectedFile;
+    
+    private bool submitting = false;
+    private bool showSuccessMessage = false;
+    private string? errorMessage;
+
+    private class LeaveRequestForm
+    {
+        public int LeaveTypeId { get; set; }
+        public DateTime StartDate { get; set; } = DateTime.UtcNow.Date;
+        public DateTime EndDate { get; set; } = DateTime.UtcNow.Date;
+        public string Reason { get; set; } = string.Empty;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+        if (leaveTypes.Any())
+        {
+            leaveModel.LeaveTypeId = leaveTypes.First().Id;
+            CalculateTotalDays();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        loadingBalances = true;
+        try
+        {
+            leaveTypes = await LeaveService.GetLeaveTypesAsync();
+            balances = await LeaveService.GetMyBalancesAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            loadingBalances = false;
+        }
+    }
+
+    private void CalculateTotalDays()
+    {
+        if (leaveModel.EndDate >= leaveModel.StartDate)
+        {
+            totalRequestedDays = (decimal)(leaveModel.EndDate.Date - leaveModel.StartDate.Date).TotalDays + 1;
+        }
+        else
+        {
+            totalRequestedDays = 0;
+        }
+    }
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        errorMessage = null;
+    }
+
+    private void TriggerFileInput()
+    {
+        // Handled natively by clicking inside the label/button wrapper or label targeting.
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (totalRequestedDays <= 0)
+        {
+            errorMessage = "End date must be on or after start date.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(leaveModel.Reason))
+        {
+            errorMessage = "Please provide a reason for your leave request.";
+            return;
+        }
+
+        if (requiresAttachment && selectedFile == null)
+        {
+            errorMessage = "A supporting document (PDF, DOCX) is required for this type of leave.";
+            return;
+        }
+
+        submitting = true;
+        errorMessage = null;
+
+        try
+        {
+            var content = new MultipartFormDataContent();
+            content.Add(new StringContent(leaveModel.LeaveTypeId.ToString()), "LeaveTypeId");
+            content.Add(new StringContent(leaveModel.StartDate.ToString("yyyy-MM-dd")), "StartDate");
+            content.Add(new StringContent(leaveModel.EndDate.ToString("yyyy-MM-dd")), "EndDate");
+            content.Add(new StringContent(leaveModel.Reason), "Reason");
+
+            if (selectedFile != null)
+            {
+                // Max file size 10MB
+                var fileContent = new StreamContent(selectedFile.OpenReadStream(10 * 1024 * 1024));
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue(selectedFile.ContentType);
+                content.Add(fileContent, "file", selectedFile.Name);
+            }
+
+            var success = await LeaveService.SubmitLeaveRequestAsync(content);
+            if (success)
+            {
+                showSuccessMessage = true;
+            }
+            else
+            {
+                errorMessage = "Failed to submit leave request. Check your internet connection or remaining balances.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error occurred: {ex.Message}";
+        }
+        finally
+        {
+            submitting = false;
+        }
+    }
+}

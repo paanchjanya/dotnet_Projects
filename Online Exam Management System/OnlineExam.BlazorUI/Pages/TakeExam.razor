@@ -1,0 +1,172 @@
+@page "/take/{ExamId:int}"
+@attribute [Authorize]
+@implements IAsyncDisposable
+@inject IExamService Exams
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject IConfiguration Configuration
+@inject IJSRuntime JS
+
+<PageTitle>Take Exam</PageTitle>
+
+<div class="take-exam" tabindex="0" @onkeydown="HandleKey">
+    @if (_loading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else if (_attempt is not null && _questions.Count > 0)
+    {
+        <div class="exam-toolbar">
+            <TimerDisplay ExpiresAt="_attempt.ExpiresAt" OnExpired="SubmitAsync" />
+            <ProgressIndicator Answered="_selected.Count" Total="_questions.Count" />
+            <MudButton Color="Color.Secondary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.DoneAll" OnClick="SubmitAsync">Submit</MudButton>
+        </div>
+
+        <div class="exam-workspace">
+            <section>
+                <QuestionCard Question="CurrentQuestion" SelectedOptionId="SelectedOptionId" OnSelected="OnAnswerSelected" />
+                <div class="exam-actions">
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" Disabled="@(_index == 0)" OnClick="@(() => _index--)">Previous</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Tertiary" EndIcon="@Icons.Material.Filled.ArrowForward" Disabled="@(_index == _questions.Count - 1)" OnClick="@(() => _index++)">Next</MudButton>
+                </div>
+                <div class="question-nav">
+                    @for (var i = 0; i < _questions.Count; i++)
+                    {
+                        var captured = i;
+                        <MudChip T="string" Color="@NavColor(captured)" Variant="Variant.Filled" OnClick="@(() => _index = captured)">@(captured + 1)</MudChip>
+                    }
+                </div>
+            </section>
+
+            <aside class="leaderboard">
+                <MudText Typo="Typo.h6">Live Leaderboard</MudText>
+                <MudTable Items="_leaders" Dense="true" Hover="true" Elevation="0">
+                    <HeaderContent>
+                        <MudTh>Name</MudTh>
+                        <MudTh>Score</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Name">@context.FullName</MudTd>
+                        <MudTd DataLabel="Score">@context.Score / @context.TotalMarks</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </aside>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int ExamId { get; set; }
+
+    private bool _loading = true;
+    private int _index;
+    private AttemptResponseDto? _attempt;
+    private List<QuestionDto> _questions = [];
+    private readonly Dictionary<int, int> _selected = [];
+    private List<LeaderboardEntryDto> _leaders = [];
+    private Microsoft.AspNetCore.SignalR.Client.HubConnection? _hub;
+
+    private QuestionDto CurrentQuestion => _questions[_index];
+    private int? SelectedOptionId => _selected.TryGetValue(CurrentQuestion.Id, out var optionId) ? optionId : null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _attempt = await Exams.StartAttemptAsync(ExamId);
+            _questions = await Exams.GetQuestionsAsync(ExamId);
+
+            _selected.Clear();
+            if (_attempt.SelectedAnswers is not null)
+            {
+                foreach (var (qId, oId) in _attempt.SelectedAnswers)
+                {
+                    _selected[qId] = oId;
+                }
+            }
+
+            var apiUrl = Configuration["API_URL"] ?? "https://localhost:5001";
+            _hub = new Microsoft.AspNetCore.SignalR.Client.HubConnectionBuilder()
+                .WithUrl($"{apiUrl}/hubs/leaderboard")
+                .WithAutomaticReconnect()
+                .Build();
+
+            _hub.On<List<LeaderboardEntryDto>>("LeaderboardUpdated", leaders =>
+            {
+                _leaders = leaders;
+                InvokeAsync(StateHasChanged);
+            });
+
+            await _hub.StartAsync();
+            await _hub.SendAsync("JoinExam", ExamId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnAnswerSelected(int optionId)
+    {
+        if (_attempt is null)
+        {
+            return;
+        }
+
+        _selected[CurrentQuestion.Id] = optionId;
+        await JS.InvokeVoidAsync("navigator.vibrate", 20);
+        await Exams.SaveAnswerAsync(_attempt.AttemptId, CurrentQuestion.Id, optionId);
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_attempt is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await Exams.SubmitAsync(_attempt.AttemptId);
+            Navigation.NavigateTo($"/result/{_attempt.AttemptId}");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task HandleKey(KeyboardEventArgs args)
+    {
+        if (int.TryParse(args.Key, out var number) && number >= 1 && number <= CurrentQuestion.Options.Count)
+        {
+            await OnAnswerSelected(CurrentQuestion.Options[number - 1].Id);
+        }
+        else if (args.Key == "Enter")
+        {
+            await SubmitAsync();
+        }
+    }
+
+    private Color NavColor(int index)
+    {
+        if (index == _index)
+        {
+            return Color.Primary;
+        }
+
+        return _selected.ContainsKey(_questions[index].Id) ? Color.Tertiary : Color.Default;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hub is not null)
+        {
+            await _hub.DisposeAsync();
+        }
+    }
+}

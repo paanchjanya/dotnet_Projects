@@ -1,0 +1,57 @@
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(App).Assembly" NotFoundPage="typeof(Pages.NotFound)">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                <NotAuthorized>
+                    <div class="access-denied-container">
+                        <div class="access-denied-card">
+                            <span class="bi bi-shield-lock-fill warning-icon"></span>
+                            <h2>Access Denied</h2>
+                            <p>You don't have permission to access this page. Please log in with an authorized account.</p>
+                            <a href="/login" class="btn btn-primary">Go to Login</a>
+                        </div>
+                    </div>
+                </NotAuthorized>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+    </Router>
+</CascadingAuthenticationState>
+
+<style>
+    .access-denied-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 70vh;
+        background-color: #f8fafc;
+        padding: 2rem;
+    }
+    .access-denied-card {
+        background: white;
+        border-radius: 16px;
+        padding: 3rem;
+        text-align: center;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        max-width: 450px;
+        width: 100%;
+        border: 1px solid #e2e8f0;
+    }
+    .warning-icon {
+        font-size: 4rem;
+        color: #ef4444;
+        margin-bottom: 1.5rem;
+        display: inline-block;
+    }
+    .access-denied-card h2 {
+        font-size: 1.75rem;
+        color: #0f172a;
+        margin-bottom: 1rem;
+        font-weight: 700;
+    }
+    .access-denied-card p {
+        color: #64748b;
+        margin-bottom: 2rem;
+        line-height: 1.6;
+    }
+</style>

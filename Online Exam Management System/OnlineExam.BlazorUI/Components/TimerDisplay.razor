@@ -1,0 +1,55 @@
+@implements IAsyncDisposable
+
+<MudChip T="string" Color="@ChipColor" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Timer">
+    @RemainingText
+</MudChip>
+
+@code {
+    [Parameter] public DateTime ExpiresAt { get; set; }
+    [Parameter] public EventCallback OnExpired { get; set; }
+
+    private PeriodicTimer? _timer;
+    private TimeSpan _remaining = TimeSpan.Zero;
+    private bool _expiredRaised;
+
+    private string RemainingText => $"{Math.Max(0, (int)_remaining.TotalMinutes):00}:{Math.Max(0, _remaining.Seconds):00}";
+    private Color ChipColor => _remaining.TotalSeconds <= 10 ? Color.Warning : Color.Primary;
+
+    protected override void OnParametersSet()
+    {
+        _remaining = ExpiresAt - DateTime.UtcNow;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        _ = RunTimerAsync();
+        await Task.CompletedTask;
+    }
+
+    private async Task RunTimerAsync()
+    {
+        if (_timer is null)
+        {
+            return;
+        }
+
+        while (await _timer.WaitForNextTickAsync())
+        {
+            _remaining = ExpiresAt - DateTime.UtcNow;
+            if (_remaining <= TimeSpan.Zero && !_expiredRaised)
+            {
+                _expiredRaised = true;
+                await OnExpired.InvokeAsync();
+            }
+
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        _timer?.Dispose();
+        return ValueTask.CompletedTask;
+    }
+}

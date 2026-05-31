@@ -1,0 +1,123 @@
+@page "/my-orders"
+@attribute [Authorize]
+@inject ApiService ApiService
+
+<div class="fade-in mt-4 mb-5">
+    <h1 class="display-6 font-outfit fw-bold mb-4">Your Order History</h1>
+
+    @if (isLoading)
+    {
+        <div class="d-flex flex-column align-items-center justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="text-secondary mt-3">Fetching your orders...</p>
+        </div>
+    }
+    else if (orders == null || orders.Count == 0)
+    {
+        <div class="text-center py-5 border rounded-3 bg-white shadow-sm">
+            <span class="bi bi-receipt fs-1 text-secondary mb-3 d-inline-block"></span>
+            <h3>No orders found</h3>
+            <p class="text-secondary">You haven't placed any orders yet.</p>
+            <a href="/" class="btn btn-primary mt-2">Explore Books</a>
+        </div>
+    }
+    else
+    {
+        <div class="d-flex flex-column gap-4">
+            @foreach (var order in orders)
+            {
+                <div class="card shadow-sm border-light bg-white rounded-3 overflow-hidden">
+                    <!-- Order Header -->
+                    <div class="card-header bg-light border-bottom-0 py-3 px-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
+                        <div class="d-flex align-items-center gap-4">
+                            <div>
+                                <span class="text-secondary small d-block">ORDER DATE</span>
+                                <span class="fw-semibold text-dark">@order.OrderDate.ToLocalTime().ToString("MMM dd, yyyy")</span>
+                            </div>
+                            <div>
+                                <span class="text-secondary small d-block">ORDER ID</span>
+                                <span class="fw-semibold text-dark">#@order.Id</span>
+                            </div>
+                            <div>
+                                <span class="text-secondary small d-block">SHIPPING ADDRESS</span>
+                                <span class="fw-semibold text-dark text-truncate d-inline-block" style="max-width: 250px;" title="@order.ShippingAddress">@order.ShippingAddress</span>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-3">
+                            <div>
+                                <span class="text-secondary small d-block text-end">TOTAL</span>
+                                <span class="fw-bold text-primary font-outfit fs-5">$@order.TotalAmount.ToString("F2")</span>
+                            </div>
+                            <div>
+                                <span class="badge @GetStatusClass(order.Status) py-2 px-3 rounded-pill">
+                                    @order.Status
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Order Items Details -->
+                    <div class="card-body p-4">
+                        <div class="d-flex flex-column gap-3">
+                            @foreach (var item in order.Items)
+                            {
+                                <div class="d-flex align-items-center justify-content-between py-2 border-bottom border-light">
+                                    <div class="d-flex align-items-center">
+                                        <img src="@GetAbsoluteImageUrl(item.CoverImageUrl)" alt="@item.BookTitle" class="rounded" style="width: 50px; height: 65px; object-fit: cover; margin-right: 1rem;" />
+                                        <div>
+                                            <h6 class="fw-bold mb-0 text-dark">@item.BookTitle</h6>
+                                            <span class="text-secondary small">by @item.BookAuthor</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="text-secondary small">Qty: @item.Quantity</span>
+                                        <span class="d-block fw-semibold text-dark">$@((item.UnitPrice * item.Quantity).ToString("F2"))</span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<OrderResponse>? orders;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        orders = await ApiService.GetMyOrdersAsync();
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private string GetStatusClass(string status)
+    {
+        return status switch
+        {
+            "Pending" => "bg-warning text-dark",
+            "Shipped" => "bg-info text-white",
+            "Delivered" => "bg-success text-white",
+            _ => "bg-secondary text-white"
+        };
+    }
+
+    private string GetAbsoluteImageUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url))
+        {
+            return "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&q=80&w=400";
+        }
+        if (url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        {
+            return url;
+        }
+        return $"{ApiService.BaseAddress.TrimEnd('/')}/{url.TrimStart('/')}";
+    }
+}

@@ -1,0 +1,27 @@
+<div class="progress-wrap">
+    <MudProgressLinear Value="@Percent" Color="@Color" Rounded="true" Size="Size.Large" />
+    <MudText Typo="Typo.caption">@Answered of @Total answered</MudText>
+</div>
+
+@code {
+    [Parameter] public int Answered { get; set; }
+    [Parameter] public int Total { get; set; }
+
+    private double Percent => Total == 0 ? 0 : Answered * 100d / Total;
+    private Color Color => GetColor();
+
+    private Color GetColor()
+    {
+        if (Percent < 40)
+        {
+            return Color.Secondary;
+        }
+
+        if (Percent < 80)
+        {
+            return Color.Warning;
+        }
+
+        return Color.Tertiary;
+    }
+}

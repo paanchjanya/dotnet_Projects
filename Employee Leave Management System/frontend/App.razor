@@ -1,0 +1,22 @@
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                <NotAuthorized>
+                    <RedirectToLogin />
+                </NotAuthorized>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <PageTitle>Not Found</PageTitle>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <div class="text-center py-5">
+                    <h1 class="display-1 text-teal">404</h1>
+                    <p class="lead">Oops! The page you are looking for does not exist.</p>
+                    <a href="/" class="btn btn-teal mt-3">Back to Cover Page</a>
+                </div>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>

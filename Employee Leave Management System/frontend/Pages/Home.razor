@@ -1,0 +1,101 @@
+@page "/"
+@layout EmptyLayout
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+
+<PageTitle>LeaveFlow - Employee Leave Management System</PageTitle>
+
+<div class="cover-container fade-in">
+    <header class="cover-header">
+        <div class="cover-brand">
+            <div class="cover-brand-icon">⚡</div>
+            <span class="cover-brand-text">LeaveFlow</span>
+        </div>
+        <AuthorizeView>
+            <Authorized>
+                <a href="dashboard" class="btn btn-secondary">Go to Dashboard</a>
+            </Authorized>
+            <NotAuthorized>
+                <a href="login" class="btn btn-primary">Login</a>
+            </NotAuthorized>
+        </AuthorizeView>
+    </header>
+
+    <main class="cover-main">
+        <div class="hero-section">
+            <div class="hero-text-content">
+                <div class="cover-badge">
+                    <span>✨</span> Automated Workflows & Smart Notifications
+                </div>
+                
+                <h1 class="cover-title" style="text-align: left; margin-top: 0.5rem;">
+                    Streamlining <span>Employee Leaves</span>,<br />
+                    Empowering Teams.
+                </h1>
+                
+                <p class="cover-subtitle" style="text-align: left; max-width: 100%;">
+                    An elegant, secure, and modern employee leave management portal. Apply for leaves, upload supporting documentation, manage balances, and handle manager workflows in real-time.
+                </p>
+
+                <div class="cover-buttons" style="justify-content: flex-start;">
+                    <AuthorizeView>
+                        <Authorized>
+                            <a href="dashboard" class="btn btn-primary">
+                                Open Dashboard <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </Authorized>
+                        <NotAuthorized>
+                            <a href="login" class="btn btn-primary">
+                                Enter System <i class="bi bi-box-arrow-in-right"></i>
+                            </a>
+                            <a href="#features" class="btn btn-secondary" @onclick="ScrollToFeatures">
+                                Explore Features
+                            </a>
+                        </NotAuthorized>
+                    </AuthorizeView>
+                </div>
+            </div>
+
+            <div class="hero-image-container">
+                <img src="images/leave_flow_poster.png" alt="LeaveFlow Dashboard Illustration" class="hero-poster" />
+            </div>
+        </div>
+
+        <div id="features" class="cover-features">
+            <div class="cover-feature-card">
+                <div class="feature-icon">
+                    <i class="bi bi-pie-chart-fill"></i>
+                </div>
+                <h3 class="feature-title">Balance Tracking</h3>
+                <p class="feature-desc">Interactive dashboard tracking of Sick, Casual, and Annual leave entitlements with real-time balance calculations.</p>
+            </div>
+            
+            <div class="cover-feature-card">
+                <div class="feature-icon">
+                    <i class="bi bi-file-earmark-arrow-up-fill"></i>
+                </div>
+                <h3 class="feature-title">Secure Uploads</h3>
+                <p class="feature-desc">Upload medical certificates, study sheets, or supporting PDF and DOCX files directly from the application request forms.</p>
+            </div>
+            
+            <div class="cover-feature-card">
+                <div class="feature-icon">
+                    <i class="bi bi-envelope-check-fill"></i>
+                </div>
+                <h3 class="feature-title">Seamless Workflow</h3>
+                <p class="feature-desc">Direct manager notifications and real-time email simulations detailing approval actions, remarks, and audit trails.</p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="cover-footer">
+        &copy; @DateTime.Now.Year LeaveFlow Corp. Designed for modern workspaces.
+    </footer>
+</div>
+
+@code {
+    private void ScrollToFeatures()
+    {
+        // Simple fallback. Since this is in Blazor WebAssembly, we could invoke JS to scroll.
+    }
+}

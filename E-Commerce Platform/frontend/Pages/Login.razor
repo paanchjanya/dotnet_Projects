@@ -1,0 +1,128 @@
+@page "/login"
+@inject ApiService ApiService
+@inject NavigationManager NavigationManager
+
+<div class="auth-container fade-in">
+    <div class="auth-card">
+        <div class="text-center mb-4">
+            <span class="bi bi-book-half text-primary display-4 mb-2 d-inline-block"></span>
+            <h2 class="font-outfit fw-bold text-dark mb-1">Welcome Back</h2>
+            <p class="text-secondary small">Access your custom bookstore account</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(successMessage))
+        {
+            <div class="alert alert-success py-2 px-3 small mb-3">
+                <span class="bi bi-check-circle me-1"></span> @successMessage
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger py-2 px-3 small mb-3">
+                <span class="bi bi-exclamation-circle me-1"></span> @errorMessage
+            </div>
+        }
+
+        <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator />
+
+            <div class="mb-3">
+                <label for="username" class="form-label small fw-semibold text-secondary">Username</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0"><span class="bi bi-person text-secondary"></span></span>
+                    <InputText id="username" class="form-control border-start-0 ps-0" placeholder="e.g. johndoe" @bind-Value="loginModel.Username" />
+                </div>
+                <ValidationMessage For="() => loginModel.Username" class="text-danger small mt-1" />
+            </div>
+
+            <div class="mb-4">
+                <label for="password" class="form-label small fw-semibold text-secondary">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0"><span class="bi bi-key text-secondary"></span></span>
+                    <InputText type="password" id="password" class="form-control border-start-0 ps-0" placeholder="••••••••" @bind-Value="loginModel.Password" />
+                </div>
+                <ValidationMessage For="() => loginModel.Password" class="text-danger small mt-1" />
+            </div>
+
+            @if (isLoggingIn)
+            {
+                <button class="btn btn-primary w-100 py-2.5 d-flex align-items-center justify-content-center gap-2" disabled>
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    Authenticating...
+                </button>
+            }
+            else
+            {
+                <button type="submit" class="btn btn-primary w-100 py-2.5 shadow">
+                    Log In
+                </button>
+            }
+        </EditForm>
+
+        <div class="text-center mt-4 small">
+            <span class="text-secondary">New to NovelNook?</span> 
+            <a href="/register" class="fw-semibold text-primary text-decoration-none ms-1">Create an account</a>
+        </div>
+
+        <div class="mt-4 p-3 bg-light border rounded text-center small text-secondary">
+            <p class="fw-bold mb-1 text-dark">Demo Accounts:</p>
+            <div class="d-flex justify-content-around">
+                <div>
+                    <strong>Customer:</strong><br />
+                    <code>customer</code> / <code>customer123</code>
+                </div>
+                <div class="vr"></div>
+                <div>
+                    <strong>Store Admin:</strong><br />
+                    <code>admin</code> / <code>admin123</code>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginRequest loginModel = new();
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+    private bool isLoggingIn = false;
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? Registered { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (Registered == "true")
+        {
+            successMessage = "Account created successfully! Please log in.";
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+        isLoggingIn = true;
+
+        var result = await ApiService.LoginAsync(loginModel);
+        isLoggingIn = false;
+
+        if (result != null)
+        {
+            if (result.Role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                NavigationManager.NavigateTo("/admin/dashboard", forceLoad: true);
+            }
+            else
+            {
+                NavigationManager.NavigateTo("/", forceLoad: true);
+            }
+        }
+        else
+        {
+            errorMessage = "Invalid username or password. Please try again.";
+        }
+    }
+}

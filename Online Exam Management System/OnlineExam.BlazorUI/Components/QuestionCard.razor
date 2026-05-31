@@ -1,0 +1,18 @@
+<MudPaper Class="question-card" Elevation="0">
+    <MudText Typo="Typo.overline" Color="Color.Secondary">@Question.Topic • @Question.Marks marks</MudText>
+    <MudText Typo="Typo.h5" Class="question-text">@Question.Text</MudText>
+    <div class="option-grid">
+        @for (var i = 0; i < Question.Options.Count; i++)
+        {
+            var option = Question.Options[i];
+            var label = (i + 1).ToString();
+            <AnswerOption Option="option" KeyLabel="@label" Selected="@(SelectedOptionId == option.Id)" OnSelected="OnSelected" />
+        }
+    </div>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public QuestionDto Question { get; set; } = default!;
+    [Parameter] public int? SelectedOptionId { get; set; }
+    [Parameter] public EventCallback<int> OnSelected { get; set; }
+}

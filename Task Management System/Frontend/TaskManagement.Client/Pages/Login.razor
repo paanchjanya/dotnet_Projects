@@ -1,0 +1,118 @@
+@page "/login"
+@layout MainLayout
+@attribute [AllowAnonymous]
+@inject HttpClient Http
+@inject AuthStateProvider AuthState
+@inject NavigationManager Navigation
+
+<div class="auth-container">
+    <div class="glass-panel auth-card">
+        <div class="auth-header">
+            <div class="sidebar-logo" style="margin: 0 auto 1rem auto; width: 48px; height: 48px; font-size: 1.75rem;">T</div>
+            <h1 class="auth-title">Welcome Back</h1>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">Sign in to manage your team tasks</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div style="background-color: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger); color: var(--danger); padding: 0.75rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.9rem; text-align: center;">
+                @_errorMessage
+            </div>
+        }
+
+        <EditForm Model="@_loginModel" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator />
+
+            <div class="form-group">
+                <label class="form-label" for="email">Email Address</label>
+                <InputText id="email" class="form-input" @bind-Value="_loginModel.Email" placeholder="name@company.com" />
+                <ValidationMessage For="@(() => _loginModel.Email)" style="color: var(--danger); font-size: 0.8rem; margin-top: 0.25rem; display: block;" />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password">Password</label>
+                <InputText id="password" type="password" class="form-input" @bind-Value="_loginModel.Password" placeholder="••••••••" />
+                <ValidationMessage For="@(() => _loginModel.Password)" style="color: var(--danger); font-size: 0.8rem; margin-top: 0.25rem; display: block;" />
+            </div>
+
+            <button type="submit" class="btn-premium" style="margin-top: 1rem;" disabled="@_isSubmitting">
+                @if (_isSubmitting)
+                {
+                    <span>Signing In...</span>
+                }
+                else
+                {
+                    <span>Sign In</span>
+                }
+            </button>
+        </EditForm>
+
+        <div style="text-align: center; margin-top: 2rem; font-size: 0.9rem; color: var(--text-muted);">
+            Don't have an account? <a href="register" style="color: var(--primary); font-weight: 600;">Register here</a>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginModel _loginModel = new();
+    private string? _errorMessage;
+    private bool _isSubmitting;
+
+    private async Task HandleLogin()
+    {
+        _isSubmitting = true;
+        _errorMessage = null;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/auth/login", _loginModel);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<AuthResponseDto>();
+                if (result != null)
+                {
+                    await AuthState.MarkUserAsAuthenticated(result.Token);
+                    // Force complete reload to trigger app layout state reinitialization
+                    Navigation.NavigateTo("", forceLoad: true);
+                }
+                else
+                {
+                    _errorMessage = "Authentication response could not be parsed.";
+                }
+            }
+            else
+            {
+                var errorObj = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+                _errorMessage = errorObj?.Message ?? "Invalid email or password.";
+            }
+        }
+        catch (Exception)
+        {
+            _errorMessage = "Failed to connect to the authentication server.";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    public class LoginModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Email is required")]
+        [System.ComponentModel.DataAnnotations.EmailAddress(ErrorMessage = "Invalid email format")]
+        public string Email { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Password is required")]
+        public string Password { get; set; } = string.Empty;
+    }
+
+    public class ErrorResponse
+    {
+        public string Message { get; set; } = string.Empty;
+    }
+
+    public class AuthResponseDto
+    {
+        public string Token { get; set; } = string.Empty;
+    }
+}

@@ -1,0 +1,65 @@
+@inherits LayoutComponentBase
+@inject LocalStorageService Storage
+
+<MudThemeProvider Theme="_theme" IsDarkMode="_darkMode" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout Class="@(_darkMode ? "exam-shell dark" : "exam-shell")">
+    <MudAppBar Elevation="0" Class="top-bar">
+        <MudText Typo="Typo.h6" Class="brand">Online Exam Management System</MudText>
+        <MudSpacer />
+        <MudTooltip Text="Toggle theme">
+            <MudIconButton Icon="@Icons.Material.Filled.LightMode" Color="Color.Inherit" OnClick="ToggleTheme" />
+        </MudTooltip>
+    </MudAppBar>
+    <MudDrawer Open="true" Variant="DrawerVariant.Responsive" Elevation="0" Class="side-nav">
+        <NavMenu />
+    </MudDrawer>
+    <MudMainContent Class="main-content fade-page">
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _darkMode;
+
+    private readonly MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#6C63FF",
+            Secondary = "#FF6584",
+            Tertiary = "#43E895",
+            Warning = "#FFB347",
+            Background = "#F9F9FF",
+            Surface = "#FFFFFF",
+            TextPrimary = "#2D2D3A",
+            TextSecondary = "#6B6B7A"
+        },
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#8F88FF",
+            Secondary = "#FF7D99",
+            Tertiary = "#43E895",
+            Warning = "#FFB347",
+            Background = "#171722",
+            Surface = "#222235",
+            TextPrimary = "#F9F9FF",
+            TextSecondary = "#C6C6D2"
+        },
+        LayoutProperties = new LayoutProperties { DefaultBorderRadius = "8px" }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _darkMode = await Storage.GetAsync<bool>("exam-dark-mode");
+    }
+
+    private async Task ToggleTheme()
+    {
+        _darkMode = !_darkMode;
+        await Storage.SetAsync("exam-dark-mode", _darkMode);
+    }
+}

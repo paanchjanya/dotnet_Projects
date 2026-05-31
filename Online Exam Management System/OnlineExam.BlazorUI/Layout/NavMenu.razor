@@ -1,0 +1,17 @@
+@inject JwtAuthStateProvider Auth
+@inject NavigationManager Navigation
+
+<MudNavMenu Class="nav-menu">
+    <MudNavLink Href="/dashboard" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
+    <MudNavLink Href="/admin/questions" Icon="@Icons.Material.Filled.AdminPanelSettings">Admin</MudNavLink>
+    <MudDivider Class="my-3" />
+    <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Logout" OnClick="Logout" FullWidth="true">Logout</MudButton>
+</MudNavMenu>
+
+@code {
+    private async Task Logout()
+    {
+        await Auth.LogoutAsync();
+        Navigation.NavigateTo("/login", true);
+    }
+}

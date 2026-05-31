@@ -1,0 +1,198 @@
+@page "/admin/dashboard"
+@attribute [Authorize(Roles = "Admin")]
+@inject ApiService ApiService
+
+<div class="fade-in mt-4 mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="display-6 font-outfit fw-bold text-dark mb-1">Admin Dashboard</h1>
+            <p class="text-secondary small">Real-time business performance analytics</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/admin/books" class="btn btn-outline-primary"><span class="bi bi-journal-plus me-1"></span> Manage Inventory</a>
+            <a href="/admin/orders" class="btn btn-outline-primary"><span class="bi bi-truck me-1"></span> Manage Orders</a>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="d-flex flex-column align-items-center justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="text-secondary mt-3">Computing business metrics...</p>
+        </div>
+    }
+    else if (stats == null)
+    {
+        <div class="alert alert-danger" role="alert">
+            <span class="bi bi-exclamation-triangle-fill me-2"></span> Failed to load dashboard statistics.
+        </div>
+    }
+    else
+    {
+        <!-- Stats Cards Grid -->
+        <div class="row g-4 mb-5">
+            <div class="col-sm-6 col-lg-3">
+                <div class="admin-card d-flex align-items-center gap-3">
+                    <div class="admin-card-icon bg-primary text-white">
+                        <span class="bi bi-currency-dollar"></span>
+                    </div>
+                    <div>
+                        <span class="text-secondary small d-block">TOTAL SALES</span>
+                        <h3 class="fw-bold font-outfit text-dark mb-0">$@stats.TotalSales.ToString("N2")</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-6 col-lg-3">
+                <div class="admin-card d-flex align-items-center gap-3">
+                    <div class="admin-card-icon bg-warning text-white">
+                        <span class="bi bi-bag-check"></span>
+                    </div>
+                    <div>
+                        <span class="text-secondary small d-block">TOTAL ORDERS</span>
+                        <h3 class="fw-bold font-outfit text-dark mb-0">@stats.TotalOrders</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-6 col-lg-3">
+                <div class="admin-card d-flex align-items-center gap-3">
+                    <div class="admin-card-icon bg-success text-white">
+                        <span class="bi bi-book"></span>
+                    </div>
+                    <div>
+                        <span class="text-secondary small d-block">BOOKS IN STORE</span>
+                        <h3 class="fw-bold font-outfit text-dark mb-0">@stats.TotalBooks</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-6 col-lg-3">
+                <div class="admin-card d-flex align-items-center gap-3">
+                    <div class="admin-card-icon bg-info text-white">
+                        <span class="bi bi-people"></span>
+                    </div>
+                    <div>
+                        <span class="text-secondary small d-block">CUSTOMERS</span>
+                        <h3 class="fw-bold font-outfit text-dark mb-0">@stats.TotalCustomers</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- Left: Sales by Category -->
+            <div class="col-md-5">
+                <div class="card border border-light rounded-3 bg-white shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <h4 class="font-outfit fw-bold mb-4">Sales by Category</h4>
+                        <div class="d-flex flex-column gap-3">
+                            @if (stats.CategorySales == null || stats.CategorySales.Count == 0)
+                            {
+                                <p class="text-secondary small text-center my-4">No categories data available.</p>
+                            }
+                            else
+                            {
+                                var maxRevenue = stats.CategorySales.Max(c => c.Revenue);
+                                foreach (var cat in stats.CategorySales)
+                                {
+                                    var pct = maxRevenue > 0 ? (double)(cat.Revenue / maxRevenue) * 100 : 0;
+                                    <div>
+                                        <div class="d-flex justify-content-between mb-1 small text-secondary">
+                                            <span class="fw-semibold text-dark">@cat.Category</span>
+                                            <span>$@cat.Revenue.ToString("N2") (@cat.QuantitySold sold)</span>
+                                        </div>
+                                        <div class="progress" style="height: 10px; border-radius: 99px;">
+                                            <div class="progress-bar bg-primary" role="progressbar" 
+                                                 style="width: @(pct)%; border-radius: 99px;" 
+                                                 aria-valuenow="@pct" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Recent Orders List -->
+            <div class="col-md-7">
+                <div class="card border border-light rounded-3 bg-white shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <h4 class="font-outfit fw-bold mb-4">Recent Transactions</h4>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light small text-secondary border-0">
+                                    <tr>
+                                        <th>Order ID</th>
+                                        <th>Customer</th>
+                                        <th>Date</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (stats.RecentOrders == null || stats.RecentOrders.Count == 0)
+                                    {
+                                        <tr>
+                                            <td colspan="5" class="text-center py-4 text-secondary small">No orders recorded yet.</td>
+                                        </tr>
+                                    }
+                                    else
+                                    {
+                                        foreach (var o in stats.RecentOrders)
+                                        {
+                                            <tr>
+                                                <td class="fw-bold">#@o.Id</td>
+                                                <td>@o.CustomerName</td>
+                                                <td>@o.OrderDate.ToLocalTime().ToString("MM/dd/yy")</td>
+                                                <td class="fw-semibold text-primary">$@o.TotalAmount.ToString("N2")</td>
+                                                <td>
+                                                    <span class="badge @GetStatusClass(o.Status) rounded-pill py-1 px-2.5 small">
+                                                        @o.Status
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private DashboardStats? stats;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        stats = await ApiService.GetDashboardStatsAsync();
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private string GetStatusClass(string status)
+    {
+        return status switch
+        {
+            "Pending" => "bg-warning text-dark",
+            "Shipped" => "bg-info text-white",
+            "Delivered" => "bg-success text-white",
+            _ => "bg-secondary text-white"
+        };
+    }
+}
+
+<style>
+    .admin-card-icon {
+        border-radius: var(--radius-md);
+    }
+</style>

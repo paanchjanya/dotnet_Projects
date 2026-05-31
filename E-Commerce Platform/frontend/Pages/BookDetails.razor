@@ -1,0 +1,168 @@
+@page "/books/{id:int}"
+@inject ApiService ApiService
+@inject CartService CartService
+@inject NavigationManager NavigationManager
+
+<div class="fade-in mt-4 mb-5">
+    <div class="mb-4">
+        <button class="btn btn-light d-flex align-items-center gap-2" @onclick="GoBack">
+            <span class="bi bi-arrow-left"></span> Back to Catalog
+        </button>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="d-flex flex-column align-items-center justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="text-secondary mt-3">Reading book description...</p>
+        </div>
+    }
+    else if (book == null)
+    {
+        <div class="alert alert-danger" role="alert">
+            <span class="bi bi-exclamation-triangle-fill me-2"></span> Book not found or failed to load description.
+        </div>
+    }
+    else
+    {
+        <div class="row g-5 align-items-start">
+            <!-- Left Column: Book Image -->
+            <div class="col-md-5 col-lg-4 text-center">
+                <div class="book-cover-container shadow-lg border rounded-3 p-2 bg-white bounce-in">
+                    <img src="@GetAbsoluteImageUrl(book.CoverImageUrl)" alt="@book.Title" class="img-fluid rounded-3" style="max-height: 480px; object-fit: cover;" />
+                </div>
+            </div>
+
+            <!-- Right Column: Details -->
+            <div class="col-md-7 col-lg-8">
+                <div class="d-flex flex-column gap-3">
+                    <div>
+                        <span class="badge bg-primary mb-2 py-2 px-3 rounded-pill">@book.Category</span>
+                        <h1 class="display-5 font-outfit fw-bold text-dark lh-sm">@book.Title</h1>
+                        <p class="fs-5 text-secondary">by <span class="fw-semibold text-dark">@book.Author</span></p>
+                    </div>
+
+                    <hr />
+
+                    <div class="fs-4 fw-extrabold text-primary font-outfit">
+                        $@book.Price.ToString("F2")
+                    </div>
+
+                    <div>
+                        <h5 class="fw-bold text-dark font-outfit">Description</h5>
+                        <p class="text-secondary lh-lg" style="white-space: pre-line;">@book.Description</p>
+                    </div>
+
+                    <div>
+                        <h5 class="fw-bold text-dark font-outfit">Inventory Details</h5>
+                        <div class="d-flex align-items-center gap-3 mt-2">
+                            @if (book.StockQuantity > 0)
+                            {
+                                <span class="badge bg-success py-2 px-3 rounded-pill">
+                                    <span class="bi bi-check-circle me-1"></span> In Stock (@book.StockQuantity available)
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger py-2 px-3 rounded-pill">
+                                    <span class="bi bi-x-circle me-1"></span> Out of Stock
+                                </span>
+                            }
+                        </div>
+                    </div>
+
+                    @if (book.StockQuantity > 0)
+                    {
+                        <div class="d-flex align-items-center gap-3 mt-3 flex-wrap">
+                            <div class="d-flex align-items-center border rounded-3 bg-white p-1" style="max-width: 150px;">
+                                <button class="btn btn-link text-decoration-none py-1 px-2 fs-5" @onclick="DecrementQty" disabled="@(quantity <= 1)">-</button>
+                                <input type="number" class="form-control border-0 text-center fw-bold fs-5 p-0 m-0" @bind="quantity" style="box-shadow: none;" min="1" max="@book.StockQuantity" />
+                                <button class="btn btn-link text-decoration-none py-1 px-2 fs-5" @onclick="IncrementQty" disabled="@(quantity >= book.StockQuantity)">+</button>
+                            </div>
+
+                            <button class="btn btn-primary btn-lg px-4 d-flex align-items-center gap-2 shadow-sm" @onclick="AddToCart">
+                                <span class="bi bi-cart-plus-fill"></span> Add to Shopping Bag
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Book? book;
+    private bool isLoading = true;
+    private int quantity = 1;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        book = await ApiService.GetBookByIdAsync(Id);
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private void IncrementQty()
+    {
+        if (book != null && quantity < book.StockQuantity)
+        {
+            quantity++;
+        }
+    }
+
+    private void DecrementQty()
+    {
+        if (quantity > 1)
+        {
+            quantity--;
+        }
+    }
+
+    private async Task AddToCart()
+    {
+        if (book != null)
+        {
+            await CartService.AddToCartAsync(book, quantity);
+            NavigationManager.NavigateTo("/cart");
+        }
+    }
+
+    private string GetAbsoluteImageUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url))
+        {
+            return "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&q=80&w=400";
+        }
+        if (url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        {
+            return url;
+        }
+        return $"{ApiService.BaseAddress.TrimEnd('/')}/{url.TrimStart('/')}";
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+}
+
+<style>
+    .book-cover-container {
+        display: inline-block;
+        transition: var(--transition-smooth);
+    }
+    .book-cover-container:hover {
+        transform: scale(1.02);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+    }
+    .font-outfit {
+        font-family: 'Outfit', sans-serif;
+    }
+</style>

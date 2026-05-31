@@ -1,0 +1,234 @@
+@inherits LayoutComponentBase
+@inject ThemeManager Theme
+@inject BoardService BoardSvc
+@inject AuthStateProvider AuthProvider
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<PageTitle>TaskFlow - Task Management</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="app-container">
+            <!-- Sidebar Drawer -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <div class="sidebar-logo">T</div>
+                    <span class="sidebar-title">TaskFlow</span>
+                </div>
+
+                <nav class="sidebar-menu">
+                    <NavLink class="menu-item" href="" Match="NavLinkMatch.All">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                        Dashboard
+                    </NavLink>
+
+                    <div style="margin: 1.5rem 0.5rem 0.5rem 0.5rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 700;">
+                        My Boards
+                    </div>
+
+                    @if (_boards == null)
+                    {
+                        <div style="padding: 0.5rem 1rem; font-size: 0.85rem; color: var(--text-muted);">Loading boards...</div>
+                    }
+                    else if (!_boards.Any())
+                    {
+                        <div style="padding: 0.5rem 1rem; font-size: 0.85rem; color: var(--text-muted); font-style: italic;">No boards yet.</div>
+                    }
+                    else
+                    {
+                        @foreach (var board in _boards)
+                        {
+                            <NavLink class="menu-item" href="@($"board/{board.Id}")">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px;">@board.Name</span>
+                            </NavLink>
+                        }
+                    }
+                </nav>
+
+                <div class="sidebar-footer">
+                    <!-- Theme Selector -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem; margin-bottom: 0.5rem;">
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">Theme</span>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <div class="theme-dot @(Theme.CurrentTheme == "midnight" ? "active" : "")" style="background-color: #6366f1;" @onclick='() => ChangeTheme("midnight")' title="Midnight Dark"></div>
+                            <div class="theme-dot @(Theme.CurrentTheme == "cyberpunk" ? "active" : "")" style="background-color: #ec4899;" @onclick='() => ChangeTheme("cyberpunk")' title="Cyberpunk Neon"></div>
+                            <div class="theme-dot @(Theme.CurrentTheme == "nordic" ? "active" : "")" style="background-color: #2563eb;" @onclick='() => ChangeTheme("nordic")' title="Nordic Light"></div>
+                            <div class="theme-dot @(Theme.CurrentTheme == "forest" ? "active" : "")" style="background-color: #10b981;" @onclick='() => ChangeTheme("forest")' title="Earthy Forest"></div>
+                        </div>
+                    </div>
+
+                    <!-- User Profile Banner -->
+                    <div class="glass-panel" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; border-radius: 8px;">
+                        <img src="@context.User.FindFirst("avatarUrl")?.Value" class="avatar" alt="Avatar" style="width: 36px; height: 36px;" />
+                        <div style="flex: 1; overflow: hidden;">
+                            <div style="font-weight: 600; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">@context.User.Identity?.Name</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: capitalize;">@string.Join(", ", context.User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value))</div>
+                        </div>
+                        <button @onclick="Logout" style="background: transparent; border: none; color: var(--danger); cursor: pointer; display: flex; align-items: center; padding: 0.25rem;" title="Logout">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Workspace -->
+            <div class="main-area">
+                <header class="main-header">
+                    <div class="header-title">
+                        @_headerTitle
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn-premium" style="width: auto; padding: 0.5rem 1rem;" @onclick="NavigateToNewBoard">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="margin-right: 0.25rem;"><path d="M12 4v16m8-8H4"/></svg>
+                            Create Board
+                        </button>
+                    </div>
+                </header>
+
+                <main style="flex: 1; overflow-y: auto;">
+                    @Body
+                </main>
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <!-- Render full screen auth views without sidebars -->
+        <main>
+            @Body
+        </main>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private List<ClientBoard>? _boards;
+    private string _headerTitle = "Dashboard";
+    private Microsoft.AspNetCore.SignalR.Client.HubConnection? _hubConnection;
+
+    protected override void OnInitialized()
+    {
+        Theme.OnThemeChanged += StateHasChanged;
+        Navigation.LocationChanged += OnLocationChanged;
+        UpdateHeaderTitle(Navigation.Uri);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Theme.InitializeThemeAsync();
+
+            // Check if user is authenticated and fetch boards
+            var authState = await AuthProvider.GetAuthenticationStateAsync();
+            if (authState.User.Identity?.IsAuthenticated == true)
+            {
+                await LoadBoards();
+                await SetupSignalR();
+            }
+        }
+    }
+
+    private async Task LoadBoards()
+    {
+        try
+        {
+            _boards = await BoardSvc.GetBoardsAsync();
+            StateHasChanged();
+        }
+        catch
+        {
+            // Session might have expired or backend unreachable
+        }
+    }
+
+    private async Task SetupSignalR()
+    {
+        try
+        {
+            var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (string.IsNullOrEmpty(token)) return;
+
+            // Trim quotes if serialized as JSON string
+            token = token.Trim('"');
+
+            var hubUrl = new Uri(new Uri("http://localhost:5204/"), "boardhub").AbsoluteUri;
+
+            _hubConnection = new Microsoft.AspNetCore.SignalR.Client.HubConnectionBuilder()
+                .WithUrl($"{hubUrl}?access_token={token}")
+                .WithAutomaticReconnect()
+                .Build();
+
+            _hubConnection.On("BoardListUpdated", async () =>
+            {
+                await LoadBoards();
+            });
+
+            await _hubConnection.StartAsync();
+        }
+        catch
+        {
+            // Fail silently, connection will attempt reconnect
+        }
+    }
+
+    [Inject] IJSRuntime JSRuntime { get; set; } = default!;
+
+    private async Task ChangeTheme(string name)
+    {
+        await Theme.ChangeThemeAsync(name);
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        UpdateHeaderTitle(e.Location);
+        StateHasChanged();
+    }
+
+    private void UpdateHeaderTitle(string url)
+    {
+        var relative = Navigation.ToBaseRelativePath(url);
+        if (string.IsNullOrEmpty(relative))
+        {
+            _headerTitle = "Dashboard";
+        }
+        else if (relative.StartsWith("board/"))
+        {
+            _headerTitle = "Kanban Board";
+        }
+        else if (relative == "login")
+        {
+            _headerTitle = "Sign In";
+        }
+        else if (relative == "register")
+        {
+            _headerTitle = "Register";
+        }
+    }
+
+    private void NavigateToNewBoard()
+    {
+        Navigation.NavigateTo("");
+    }
+
+    private async Task Logout()
+    {
+        if (_hubConnection != null)
+        {
+            await _hubConnection.DisposeAsync();
+            _hubConnection = null;
+        }
+        await AuthProvider.MarkUserAsLoggedOut();
+        Navigation.NavigateTo("login");
+    }
+
+    public void Dispose()
+    {
+        Theme.OnThemeChanged -= StateHasChanged;
+        Navigation.LocationChanged -= OnLocationChanged;
+        if (_hubConnection != null)
+        {
+            _ = _hubConnection.DisposeAsync();
+        }
+    }
+}

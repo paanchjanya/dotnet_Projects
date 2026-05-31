@@ -1,0 +1,16 @@
+@page "/admin"
+@attribute [Authorize(Roles = "Admin")]
+@inject NavigationManager Navigation
+
+<div class="page-head">
+    <div>
+        <MudText Typo="Typo.h3">Admin Dashboard</MudText>
+        <MudText Color="Color.Secondary">Manage exam content and keep cached questions fresh.</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.EditNote" OnClick="@(() => Navigation.NavigateTo("/admin/questions"))">Manage Questions</MudButton>
+</div>
+
+<MudPaper Class="result-summary" Elevation="0">
+    <MudText Typo="Typo.h5">Content workflow</MudText>
+    <MudText>Use the question studio to add options, mark the correct answer, and trigger Redis cache invalidation automatically.</MudText>
+</MudPaper>

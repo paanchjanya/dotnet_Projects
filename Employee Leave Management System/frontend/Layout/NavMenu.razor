@@ -1,0 +1,136 @@
+@implements IDisposable
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+@inject AuthService AuthService
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+
+<div class="sidebar-logo">
+    <div class="sidebar-logo-icon">L</div>
+    <span class="sidebar-logo-text">LeaveFlow</span>
+</div>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="sidebar-nav">
+            <NavLink class="nav-link" href="dashboard" Match="NavLinkMatch.All">
+                <i class="bi bi-speedometer2"></i> Dashboard
+            </NavLink>
+            
+            <NavLink class="nav-link" href="apply-leave">
+                <i class="bi bi-calendar-plus"></i> Apply Leave
+            </NavLink>
+            
+            @if (context.User.IsInRole("Manager") || context.User.IsInRole("Admin"))
+            {
+                <NavLink class="nav-link" href="approvals">
+                    <i class="bi bi-clipboard-check"></i> Pending Approvals
+                </NavLink>
+            }
+
+            <NavLink class="nav-link" href="profile">
+                <i class="bi bi-person-circle"></i> My Profile
+            </NavLink>
+
+            <a class="nav-link" href="javascript:void(0)" @onclick="HandleLogout" style="margin-top: 2rem; color: #ef4444;">
+                <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
+        </div>
+
+        <div class="sidebar-user">
+            <div class="sidebar-avatar">
+                @if (!string.IsNullOrEmpty(ProfilePictureUrl))
+                {
+                    <img src="@GetFullImageUrl(ProfilePictureUrl)" alt="Avatar" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" />
+                }
+                else
+                {
+                    <span>@UserInitials</span>
+                }
+            </div>
+            <div class="sidebar-user-info">
+                <span class="sidebar-user-name">@UserFullName</span>
+                <span class="sidebar-user-role">@UserRole</span>
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="sidebar-nav">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <i class="bi bi-house"></i> Home
+            </NavLink>
+            <NavLink class="nav-link" href="login">
+                <i class="bi bi-box-arrow-in-right"></i> Login
+            </NavLink>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private string UserFullName = "Employee";
+    private string UserInitials = "E";
+    private string UserRole = "Employee";
+    private string? ProfilePictureUrl;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        await LoadUserInfo();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadUserInfo();
+    }
+
+    private async void OnAuthenticationStateChanged(Task<AuthenticationState> task)
+    {
+        await InvokeAsync(async () =>
+        {
+            await LoadUserInfo();
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        AuthStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+    }
+
+    private async Task LoadUserInfo()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity != null && user.Identity.IsAuthenticated)
+        {
+            var firstName = user.FindFirst("FirstName")?.Value ?? "";
+            var lastName = user.FindFirst("LastName")?.Value ?? "";
+            UserFullName = $"{firstName} {lastName}".Trim();
+            
+            if (string.IsNullOrEmpty(UserFullName))
+            {
+                UserFullName = user.Identity.Name ?? "Employee";
+            }
+
+            UserInitials = !string.IsNullOrEmpty(firstName) && !string.IsNullOrEmpty(lastName)
+                ? $"{firstName[0]}{lastName[0]}".ToUpper()
+                : (UserFullName.Length > 0 ? UserFullName[0].ToString().ToUpper() : "U");
+
+            UserRole = user.FindFirst(ClaimTypes.Role)?.Value ?? "Employee";
+            ProfilePictureUrl = user.FindFirst("ProfilePictureUrl")?.Value;
+        }
+    }
+
+    private string GetFullImageUrl(string relativePath)
+    {
+        var backendUrl = Configuration["BackendUrl"] ?? "http://localhost:5220/";
+        var imageUrl = new Uri(new Uri(backendUrl), relativePath.TrimStart('/')).ToString();
+        return $"{imageUrl}?v={Uri.EscapeDataString(ProfilePictureUrl ?? string.Empty)}";
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthService.Logout();
+        NavigationManager.NavigateTo("login");
+    }
+}

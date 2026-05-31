@@ -1,0 +1,58 @@
+@page "/dashboard"
+@attribute [Authorize]
+@inject IExamService Exams
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Dashboard</PageTitle>
+
+<div class="page-head">
+    <div>
+        <MudText Typo="Typo.h3">Available Exams</MudText>
+        <MudText Color="Color.Secondary">Pick a challenge and keep an eye on the clock.</MudText>
+    </div>
+    <MudChip T="string" Color="Color.Tertiary" Icon="@Icons.Material.Filled.WorkspacePremium">Weekly challenge active</MudChip>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <div class="exam-grid">
+        @foreach (var exam in _exams)
+        {
+            <MudPaper Class="exam-card hover-lift" Elevation="0">
+                <MudText Typo="Typo.h5">@exam.Title</MudText>
+                <MudText Color="Color.Secondary">@exam.Description</MudText>
+                <div class="exam-meta">
+                    <MudChip T="string" Color="Color.Primary" Icon="@Icons.Material.Filled.Timer">@exam.DurationMinutes min</MudChip>
+                    <MudChip T="string" Color="Color.Secondary" Icon="@Icons.Material.Filled.Grade">@exam.TotalMarks marks</MudChip>
+                </div>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ArrowForward" OnClick="@(() => Navigation.NavigateTo($"/take/{exam.Id}"))">Start Exam</MudButton>
+            </MudPaper>
+        }
+    </div>
+}
+
+@code {
+    private bool _loading = true;
+    private List<ExamDto> _exams = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _exams = await Exams.GetActiveExamsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

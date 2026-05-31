@@ -1,0 +1,373 @@
+@page "/admin/books"
+@attribute [Authorize(Roles = "Admin")]
+@inject ApiService ApiService
+@inject NavigationManager NavigationManager
+
+<div class="fade-in mt-4 mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="display-6 font-outfit fw-bold text-dark mb-1">Manage Bookstore Inventory</h1>
+            <p class="text-secondary small">Add, update, or remove books from catalog</p>
+        </div>
+        <button class="btn btn-primary d-flex align-items-center gap-2" @onclick="ShowAddForm">
+            <span class="bi bi-plus-circle"></span> Add New Book
+        </button>
+    </div>
+
+    <!-- Error/Info Notifications -->
+    @if (!string.IsNullOrEmpty(statusMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <span class="bi bi-check-circle me-1"></span> @statusMessage
+            <button type="button" class="btn-close" @onclick="() => statusMessage = string.Empty"></button>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <span class="bi bi-exclamation-circle me-1"></span> @errorMessage
+            <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
+        </div>
+    }
+
+    <!-- Add/Edit Toggled Editor Form Card -->
+    @if (showForm)
+    {
+        <div class="card border border-light rounded-3 bg-white shadow-sm p-4 mb-5 fade-in">
+            <h3 class="font-outfit fw-bold mb-4 text-dark">@(editingBookId == 0 ? "Add New Book to Store" : "Edit Book Details")</h3>
+            
+            <EditForm Model="bookModel" OnValidSubmit="SaveBook">
+                <DataAnnotationsValidator />
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="title" class="form-label small fw-semibold text-secondary">Book Title</label>
+                        <InputText id="title" class="form-control" placeholder="e.g. The Hobbit" @bind-Value="bookModel.Title" />
+                        <ValidationMessage For="() => bookModel.Title" class="text-danger small mt-1" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="author" class="form-label small fw-semibold text-secondary">Author</label>
+                        <InputText id="author" class="form-control" placeholder="e.g. J.R.R. Tolkien" @bind-Value="bookModel.Author" />
+                        <ValidationMessage For="() => bookModel.Author" class="text-danger small mt-1" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="price" class="form-label small fw-semibold text-secondary">Unit Price ($)</label>
+                        <InputNumber id="price" class="form-control" placeholder="e.g. 14.99" @bind-Value="bookModel.Price" TValue="decimal" />
+                        <ValidationMessage For="() => bookModel.Price" class="text-danger small mt-1" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="category" class="form-label small fw-semibold text-secondary">Category</label>
+                        <InputSelect id="category" class="form-select" @bind-Value="bookModel.Category">
+                            <option value="">Select a category</option>
+                            @foreach (var cat in categories)
+                            {
+                                <option value="@cat">@cat</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="() => bookModel.Category" class="text-danger small mt-1" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="stock" class="form-label small fw-semibold text-secondary">Stock Quantity</label>
+                        <InputNumber id="stock" class="form-control" placeholder="e.g. 50" @bind-Value="bookModel.StockQuantity" TValue="int" />
+                        <ValidationMessage For="() => bookModel.StockQuantity" class="text-danger small mt-1" />
+                    </div>
+
+                    <div class="col-12">
+                        <label for="description" class="form-label small fw-semibold text-secondary">Description</label>
+                        <InputTextArea id="description" class="form-control" rows="3" placeholder="Provide a summary of the book..." @bind-Value="bookModel.Description" />
+                    </div>
+
+                    <!-- File Upload and Preview -->
+                    <div class="col-md-8">
+                        <label for="coverImage" class="form-label small fw-semibold text-secondary">Upload Book Cover Page Image</label>
+                        <InputFile id="coverImage" class="form-control" OnChange="HandleFileSelected" />
+                        <div class="form-text small text-secondary mt-1">Select an image (max 5MB: JPG, PNG, WEBP). It will be saved on our MS SQL server backend.</div>
+                        @if (isUploadingImage)
+                        {
+                            <div class="d-flex align-items-center mt-2 text-primary small">
+                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                Uploading cover image...
+                            </div>
+                        }
+                    </div>
+
+                    <div class="col-md-4 text-center">
+                        <label class="form-label small fw-semibold text-secondary d-block">Cover Image Preview</label>
+                        <div class="border rounded bg-light p-2 d-inline-block" style="min-height: 120px; min-width: 100px;">
+                            @if (!string.IsNullOrEmpty(bookModel.CoverImageUrl))
+                            {
+                                <img src="@GetAbsoluteImageUrl(bookModel.CoverImageUrl)" alt="Cover Preview" class="rounded" style="max-height: 120px; object-fit: cover;" />
+                            }
+                            else
+                            {
+                                <span class="text-muted small d-block pt-4">No Image</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mt-4 justify-content-end">
+                    <button type="button" class="btn btn-light" @onclick="CancelForm">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-4" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            <span>Saving...</span>
+                        }
+                        else
+                        {
+                            <span>Save Book</span>
+                        }
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    }
+
+    <!-- Inventory Listing Table -->
+    <div class="card border border-light rounded-3 bg-white shadow-sm p-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-3">
+            <h3 class="font-outfit fw-bold mb-0 text-dark">Book Catalog</h3>
+            <div class="search-container" style="max-width: 300px;">
+                <span class="bi bi-search search-icon"></span>
+                <input type="text" class="form-control search-input" placeholder="Search title or author..." 
+                       @bind="searchText" @bind:event="oninput" @onkeyup="SearchInventory" />
+            </div>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="d-flex flex-column align-items-center justify-content-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="text-secondary mt-3">Syncing inventory details...</p>
+            </div>
+        }
+        else if (books == null || books.Count == 0)
+        {
+            <p class="text-center py-4 text-secondary small">No inventory recorded matching criteria.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light small text-secondary">
+                        <tr>
+                            <th style="width: 60px;">Cover</th>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th class="text-end" style="width: 150px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var book in books)
+                        {
+                            <tr>
+                                <td>
+                                    <img src="@GetAbsoluteImageUrl(book.CoverImageUrl)" alt="@book.Title" class="rounded" style="width: 40px; height: 50px; object-fit: cover;" />
+                                </td>
+                                <td><span class="fw-semibold text-dark">@book.Title</span></td>
+                                <td>@book.Author</td>
+                                <td><span class="badge bg-light text-dark">@book.Category</span></td>
+                                <td class="fw-bold text-primary">$@book.Price.ToString("F2")</td>
+                                <td>
+                                    @if (book.StockQuantity <= 5)
+                                    {
+                                        <span class="text-danger fw-bold"><span class="bi bi-exclamation-triangle"></span> @book.StockQuantity Low</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-success">@book.StockQuantity</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => EditBook(book)">
+                                        <span class="bi bi-pencil-square"></span> Edit
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => ConfirmDelete(book)">
+                                        <span class="bi bi-trash"></span> Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<Book>? books;
+    private string searchText = string.Empty;
+    private bool isLoading = true;
+
+    // Form variables
+    private bool showForm = false;
+    private BookCreateUpdate bookModel = new();
+    private int editingBookId = 0;
+    private bool isSaving = false;
+    private bool isUploadingImage = false;
+    private string statusMessage = string.Empty;
+    private string errorMessage = string.Empty;
+
+    private readonly List<string> categories = new() { "Fiction", "Dystopian", "Science", "Technology", "Fantasy" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadInventory();
+    }
+
+    private async Task LoadInventory()
+    {
+        isLoading = true;
+        books = await ApiService.GetBooksAsync(searchText);
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task SearchInventory()
+    {
+        await LoadInventory();
+    }
+
+    private void ShowAddForm()
+    {
+        errorMessage = string.Empty;
+        statusMessage = string.Empty;
+        bookModel = new();
+        editingBookId = 0;
+        showForm = true;
+    }
+
+    private void EditBook(Book book)
+    {
+        errorMessage = string.Empty;
+        statusMessage = string.Empty;
+        editingBookId = book.Id;
+        bookModel = new BookCreateUpdate
+        {
+            Title = book.Title,
+            Author = book.Author,
+            Description = book.Description,
+            Price = book.Price,
+            Category = book.Category,
+            StockQuantity = book.StockQuantity,
+            CoverImageUrl = book.CoverImageUrl
+        };
+        showForm = true;
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        isUploadingImage = true;
+        errorMessage = string.Empty;
+        StateHasChanged();
+
+        var file = e.File;
+        var imageUrl = await ApiService.UploadCoverImageAsync(file);
+        
+        isUploadingImage = false;
+        if (!string.IsNullOrEmpty(imageUrl))
+        {
+            bookModel.CoverImageUrl = imageUrl;
+            statusMessage = "Cover page image uploaded successfully!";
+        }
+        else
+        {
+            errorMessage = "Failed to upload image cover page.";
+        }
+        StateHasChanged();
+    }
+
+    private async Task SaveBook()
+    {
+        if (string.IsNullOrEmpty(bookModel.Title) || string.IsNullOrEmpty(bookModel.Author) || string.IsNullOrEmpty(bookModel.Category))
+        {
+            errorMessage = "Please fill in all required fields.";
+            return;
+        }
+
+        errorMessage = string.Empty;
+        statusMessage = string.Empty;
+        isSaving = true;
+
+        Book? result = null;
+        if (editingBookId == 0)
+        {
+            // Create
+            result = await ApiService.CreateBookAsync(bookModel);
+            if (result != null)
+            {
+                statusMessage = $"Book '{bookModel.Title}' added successfully!";
+                showForm = false;
+            }
+            else
+            {
+                errorMessage = "Failed to add new book to catalog.";
+            }
+        }
+        else
+        {
+            // Update
+            result = await ApiService.UpdateBookAsync(editingBookId, bookModel);
+            if (result != null)
+            {
+                statusMessage = $"Book '{bookModel.Title}' updated successfully!";
+                showForm = false;
+            }
+            else
+            {
+                errorMessage = "Failed to update book details.";
+            }
+        }
+
+        isSaving = false;
+        await LoadInventory();
+    }
+
+    private async Task ConfirmDelete(Book book)
+    {
+        errorMessage = string.Empty;
+        statusMessage = string.Empty;
+
+        var confirmed = await ApiService.DeleteBookAsync(book.Id);
+        if (confirmed)
+        {
+            statusMessage = $"Book '{book.Title}' deleted successfully.";
+            await LoadInventory();
+        }
+        else
+        {
+            errorMessage = $"Failed to delete book '{book.Title}'.";
+        }
+    }
+
+    private void CancelForm()
+    {
+        showForm = false;
+        editingBookId = 0;
+        bookModel = new();
+    }
+
+    private string GetAbsoluteImageUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url))
+        {
+            return "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&q=80&w=400";
+        }
+        if (url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        {
+            return url;
+        }
+        return $"{ApiService.BaseAddress.TrimEnd('/')}/{url.TrimStart('/')}";
+    }
+}

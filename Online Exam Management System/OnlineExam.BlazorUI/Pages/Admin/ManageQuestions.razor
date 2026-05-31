@@ -1,0 +1,96 @@
+@page "/admin/questions"
+@attribute [Authorize(Roles = "Admin")]
+@inject IExamService Exams
+@inject ISnackbar Snackbar
+
+<PageTitle>Manage Questions</PageTitle>
+
+<div class="page-head">
+    <div>
+        <MudText Typo="Typo.h3">Question Studio</MudText>
+        <MudText Color="Color.Secondary">Create questions, options, marks, topics, and correct answers.</MudText>
+    </div>
+</div>
+
+<MudPaper Class="admin-form" Elevation="0">
+    <MudGrid>
+        <MudItem xs="12" md="3"><MudNumericField @bind-Value="_examId" Label="Exam ID" Variant="Variant.Outlined" Min="1" /></MudItem>
+        <MudItem xs="12" md="9"><MudTextField @bind-Value="_text" Label="Question text" Variant="Variant.Outlined" /></MudItem>
+        <MudItem xs="12" md="3"><MudTextField @bind-Value="_topic" Label="Topic" Variant="Variant.Outlined" /></MudItem>
+        <MudItem xs="12" md="3"><MudNumericField @bind-Value="_marks" Label="Marks" Variant="Variant.Outlined" Min="1" /></MudItem>
+        <MudItem xs="12" md="3"><MudNumericField @bind-Value="_order" Label="Order" Variant="Variant.Outlined" Min="1" /></MudItem>
+        <MudItem xs="12" md="3">
+            <MudSelect @bind-Value="_type" Label="Type" Variant="Variant.Outlined">
+                <MudSelectItem Value="QuestionType.MultipleChoice">Multiple choice</MudSelectItem>
+                <MudSelectItem Value="QuestionType.TrueFalse">True/False</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+
+    <div class="option-editor">
+        @for (var i = 0; i < _options.Count; i++)
+        {
+            var captured = i;
+            <div class="option-row">
+                <MudTextField @bind-Value="_options[captured].Text" Label="@($"Option {captured + 1}")" Variant="Variant.Outlined" />
+                <MudCheckBox @bind-Value="_options[captured].IsCorrect" Color="Color.Tertiary" Label="Correct" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Secondary" OnClick="@(() => RemoveOption(captured))" />
+            </div>
+        }
+    </div>
+
+    <div class="admin-actions">
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" OnClick="AddOption">Add Option</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveAsync">Create Question</MudButton>
+    </div>
+</MudPaper>
+
+@code {
+    private int _examId = 1;
+    private string _text = "";
+    private string _topic = "General";
+    private int _marks = 5;
+    private int _order = 1;
+    private QuestionType _type = QuestionType.MultipleChoice;
+    private List<OptionEditModel> _options = [new("Option A", true), new("Option B", false)];
+
+    private void AddOption() => _options.Add(new OptionEditModel("", false));
+
+    private void RemoveOption(int index)
+    {
+        if (_options.Count > 2)
+        {
+            _options.RemoveAt(index);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        try
+        {
+            var request = new QuestionUpsertDto(
+                _examId,
+                _text,
+                _type,
+                _marks,
+                _order,
+                _topic,
+                _options.Select(x => new OptionUpsertDto(null, x.Text, x.IsCorrect)).ToList());
+
+            await Exams.CreateQuestionAsync(request);
+            Snackbar.Add("Question created and cache invalidated.", Severity.Success);
+            _text = "";
+            _options = [new("Option A", true), new("Option B", false)];
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private sealed record OptionEditModel(string Text, bool IsCorrect)
+    {
+        public string Text { get; set; } = Text;
+        public bool IsCorrect { get; set; } = IsCorrect;
+    }
+}

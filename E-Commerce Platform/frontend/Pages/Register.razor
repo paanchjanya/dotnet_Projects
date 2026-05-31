@@ -1,0 +1,117 @@
+@page "/register"
+@inject ApiService ApiService
+@inject NavigationManager NavigationManager
+
+<div class="auth-container fade-in">
+    <div class="auth-card">
+        <div class="text-center mb-4">
+            <span class="bi bi-person-plus-fill text-primary display-4 mb-2 d-inline-block"></span>
+            <h2 class="font-outfit fw-bold text-dark mb-1">Create Account</h2>
+            <p class="text-secondary small">Join our book lovers community</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger py-2 px-3 small mb-3">
+                <span class="bi bi-exclamation-circle me-1"></span> @errorMessage
+            </div>
+        }
+
+        <EditForm Model="registerModel" OnValidSubmit="HandleRegister">
+            <DataAnnotationsValidator />
+
+            <div class="mb-3">
+                <label for="username" class="form-label small fw-semibold text-secondary">Username</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0"><span class="bi bi-person text-secondary"></span></span>
+                    <InputText id="username" class="form-control border-start-0 ps-0" placeholder="Username" @bind-Value="registerModel.Username" />
+                </div>
+                <ValidationMessage For="() => registerModel.Username" class="text-danger small mt-1" />
+            </div>
+
+            <div class="mb-3">
+                <label for="email" class="form-label small fw-semibold text-secondary">Email Address</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0"><span class="bi bi-envelope text-secondary"></span></span>
+                    <InputText type="email" id="email" class="form-control border-start-0 ps-0" placeholder="name@example.com" @bind-Value="registerModel.Email" />
+                </div>
+                <ValidationMessage For="() => registerModel.Email" class="text-danger small mt-1" />
+            </div>
+
+            <div class="mb-3">
+                <label for="password" class="form-label small fw-semibold text-secondary">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0"><span class="bi bi-key text-secondary"></span></span>
+                    <InputText type="password" id="password" class="form-control border-start-0 ps-0" placeholder="••••••••" @bind-Value="registerModel.Password" />
+                </div>
+                <ValidationMessage For="() => registerModel.Password" class="text-danger small mt-1" />
+            </div>
+
+            <div class="mb-4">
+                <label for="confirmPassword" class="form-label small fw-semibold text-secondary">Confirm Password</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0"><span class="bi bi-shield-check text-secondary"></span></span>
+                    <input type="password" id="confirmPassword" class="form-control border-start-0 ps-0" placeholder="••••••••" @bind-value="confirmPassword" />
+                </div>
+            </div>
+
+            @if (isRegistering)
+            {
+                <button class="btn btn-primary w-100 py-2.5 d-flex align-items-center justify-content-center gap-2" disabled>
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    Creating Account...
+                </button>
+            }
+            else
+            {
+                <button type="submit" class="btn btn-primary w-100 py-2.5 shadow">
+                    Register
+                </button>
+            }
+        </EditForm>
+
+        <div class="text-center mt-4 small">
+            <span class="text-secondary">Already have an account?</span> 
+            <a href="/login" class="fw-semibold text-primary text-decoration-none ms-1">Log In</a>
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterRequest registerModel = new();
+    private string confirmPassword = string.Empty;
+    private string errorMessage = string.Empty;
+    private bool isRegistering = false;
+
+    private async Task HandleRegister()
+    {
+        errorMessage = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(registerModel.Username) || 
+            string.IsNullOrWhiteSpace(registerModel.Email) || 
+            string.IsNullOrWhiteSpace(registerModel.Password))
+        {
+            errorMessage = "All fields are required.";
+            return;
+        }
+
+        if (registerModel.Password != confirmPassword)
+        {
+            errorMessage = "Passwords do not match.";
+            return;
+        }
+
+        isRegistering = true;
+        var success = await ApiService.RegisterAsync(registerModel);
+        isRegistering = false;
+
+        if (success)
+        {
+            NavigationManager.NavigateTo("/login?registered=true");
+        }
+        else
+        {
+            errorMessage = "Registration failed. Username or email may already be in use.";
+        }
+    }
+}

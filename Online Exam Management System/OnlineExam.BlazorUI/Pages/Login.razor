@@ -1,0 +1,62 @@
+@page "/login"
+@attribute [AllowAnonymous]
+@inject IExamService Exams
+@inject JwtAuthStateProvider Auth
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Login</PageTitle>
+
+<div class="auth-page">
+    <div class="particle-field"></div>
+    <MudPaper Class="auth-panel" Elevation="0">
+        <MudText Typo="Typo.h3">Online Exam Management System</MudText>
+        <MudText Typo="Typo.subtitle1" Color="Color.Secondary">Sign in and jump into your next exam.</MudText>
+
+        <MudForm @ref="_form" Class="form-stack">
+            <MudTextField @bind-Value="_email" Label="Email" Variant="Variant.Outlined" InputType="InputType.Email" Required="true" />
+            <MudTextField @bind-Value="_password" Label="Password" Variant="Variant.Outlined" InputType="InputType.Password" Required="true" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Login" OnClick="LoginAsync" Disabled="_busy" FullWidth="true">
+                @(_busy ? "Signing in..." : "Login")
+            </MudButton>
+        </MudForm>
+
+        <MudText Typo="Typo.body2">Demo admin: <b>admin@exam.com</b> / <b>Admin123!</b></MudText>
+        <MudLink Href="/register">Create a student account</MudLink>
+    </MudPaper>
+</div>
+
+@code {
+    [SupplyParameterFromQuery] public string? ReturnUrl { get; set; }
+
+    private MudForm? _form;
+    private string _email = "admin@exam.com";
+    private string _password = "Admin123!";
+    private bool _busy;
+
+    private async Task LoginAsync()
+    {
+        await _form!.Validate();
+        if (!_form.IsValid)
+        {
+            return;
+        }
+
+        try
+        {
+            _busy = true;
+            var auth = await Exams.LoginAsync(new LoginRequest(_email, _password));
+            await Auth.SetLoginAsync(auth);
+            Snackbar.Add($"Welcome, {auth.FullName}", Severity.Success);
+            Navigation.NavigateTo(string.IsNullOrWhiteSpace(ReturnUrl) ? "/dashboard" : ReturnUrl);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

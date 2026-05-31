@@ -1,0 +1,209 @@
+@page "/"
+@attribute [Authorize]
+@inject BoardService BoardSvc
+@inject NavigationManager Navigation
+
+<PageTitle>Dashboard - TaskFlow</PageTitle>
+
+<div style="padding: 2rem; max-width: 1200px; margin: 0 auto; color: var(--text-main);">
+    <!-- Welcome Header -->
+    <div style="margin-bottom: 2rem;">
+        <h1 style="font-size: 2.25rem; font-weight: 800; margin-bottom: 0.5rem; background: linear-gradient(135deg, var(--text-main), var(--text-muted)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            Workspace Dashboard
+        </h1>
+        <p style="color: var(--text-muted); font-size: 1.05rem;">Manage your project boards, view activity, and track milestones.</p>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="metric-grid">
+        <div class="glass-panel metric-card">
+            <div>
+                <div class="metric-value">@(_boards?.Count ?? 0)</div>
+                <div class="metric-label">Active Boards</div>
+            </div>
+            <div class="metric-icon">
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+            </div>
+        </div>
+        <div class="glass-panel metric-card">
+            <div>
+                <div class="metric-value">@_totalColumns</div>
+                <div class="metric-label">Kanban Columns</div>
+            </div>
+            <div class="metric-icon">
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+            </div>
+        </div>
+        <div class="glass-panel metric-card">
+            <div>
+                <div class="metric-value">@_totalTasks</div>
+                <div class="metric-label">Total Cards</div>
+            </div>
+            <div class="metric-icon">
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div style="display: grid; grid-template-columns: 1fr; gap: 2rem; align-items: start;">
+        
+        <!-- Boards Section -->
+        <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                <h2 style="font-size: 1.5rem; font-weight: 700;">My Boards</h2>
+                <button @onclick="() => _showCreateForm = !_showCreateForm" class="btn-premium" style="width: auto; padding: 0.5rem 1rem;">
+                    @(_showCreateForm ? "Cancel" : "Add Board")
+                </button>
+            </div>
+
+            <!-- Inline Board Creation Form -->
+            @if (_showCreateForm)
+            {
+                <div class="glass-panel" style="padding: 1.5rem; margin-bottom: 1.5rem; border-color: var(--primary);">
+                    <h3 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.15rem;">Create New Board</h3>
+                    
+                    @if (!string.IsNullOrEmpty(_formError))
+                    {
+                        <div style="color: var(--danger); font-size: 0.875rem; margin-bottom: 0.75rem;">@_formError</div>
+                    }
+
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+                        <div>
+                            <label class="form-label">Board Name</label>
+                            <input class="form-input" @bind="_newBoardName" placeholder="e.g. Sprint Planning, Marketing Campaign" />
+                        </div>
+                        <div>
+                            <label class="form-label">Description (Optional)</label>
+                            <textarea class="form-input" style="resize: vertical; min-height: 80px;" @bind="_newBoardDesc" placeholder="e.g. Core sprint management details..."></textarea>
+                        </div>
+                        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 0.5rem;">
+                            <button class="btn-secondary" style="padding: 0.5rem 1.25rem; font-size: 0.9rem;" @onclick="() => _showCreateForm = false">Cancel</button>
+                            <button class="btn-premium" style="width: auto; padding: 0.5rem 1.5rem; font-size: 0.9rem;" @onclick="CreateBoard">Create Board</button>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (_boards == null)
+            {
+                <div style="display: flex; justify-content: center; padding: 4rem;">
+                    <div style="color: var(--text-muted); font-size: 1.1rem;">Loading your workspace boards...</div>
+                </div>
+            }
+            else if (!_boards.Any())
+            {
+                <div class="glass-panel" style="padding: 4rem 2rem; text-align: center;">
+                    <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="color: var(--primary); margin-bottom: 1rem;"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                    <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem;">No Boards Found</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 1.5rem; max-width: 380px; margin-left: auto; margin-right: auto;">Get started by creating your first task board to manage items with columns.</p>
+                    <button class="btn-premium" style="width: auto; padding: 0.6rem 1.5rem;" @onclick="() => _showCreateForm = true">Create First Board</button>
+                </div>
+            }
+            else
+            {
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;">
+                    @foreach (var board in _boards)
+                    {
+                        <div class="glass-panel card-hover-effect" style="padding: 1.5rem; display: flex; flex-direction: column; height: 180px; box-sizing: border-box; cursor: pointer;" @onclick='() => NavigateToBoard(board.Id)'>
+                            <div style="font-weight: 700; font-size: 1.2rem; margin-bottom: 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--primary);">
+                                @board.Name
+                            </div>
+                            <div style="font-size: 0.9rem; color: var(--text-muted); flex: 1; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; margin-bottom: 0.75rem; line-height: 1.4;">
+                                @board.Description
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem; color: var(--text-muted);">
+                                <span>Created @board.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")</span>
+                                <div style="display: flex; align-items: center; gap: 0.35rem;">
+                                    <img src="@board.Owner?.AvatarUrl" class="avatar" style="width: 18px; height: 18px;" />
+                                    <span>@board.Owner?.DisplayName</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ClientBoard>? _boards;
+    private bool _showCreateForm;
+    private string _newBoardName = string.Empty;
+    private string _newBoardDesc = string.Empty;
+    private string? _formError;
+    
+    private int _totalColumns;
+    private int _totalTasks;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            _boards = await BoardSvc.GetBoardsAsync();
+            _totalColumns = 0;
+            _totalTasks = 0;
+
+            if (_boards != null)
+            {
+                foreach (var b in _boards)
+                {
+                    // To fetch column and task count we can load full board metadata,
+                    // or let's increment based on fetched details
+                    var fullBoard = await BoardSvc.GetBoardAsync(b.Id);
+                    if (fullBoard != null)
+                    {
+                        _totalColumns += fullBoard.Columns.Count;
+                        _totalTasks += fullBoard.Columns.Sum(c => c.Tasks.Count);
+                    }
+                }
+            }
+            StateHasChanged();
+        }
+        catch
+        {
+            // Error handling
+        }
+    }
+
+    private async Task CreateBoard()
+    {
+        if (string.IsNullOrWhiteSpace(_newBoardName))
+        {
+            _formError = "Board name cannot be empty.";
+            return;
+        }
+
+        _formError = null;
+        try
+        {
+            var board = await BoardSvc.CreateBoardAsync(_newBoardName, _newBoardDesc);
+            if (board != null)
+            {
+                _newBoardName = string.Empty;
+                _newBoardDesc = string.Empty;
+                _showCreateForm = false;
+                await LoadData();
+            }
+            else
+            {
+                _formError = "Failed to create board.";
+            }
+        }
+        catch
+        {
+            _formError = "An error occurred.";
+        }
+    }
+
+    private void NavigateToBoard(Guid id)
+    {
+        Navigation.NavigateTo($"board/{id}");
+    }
+}

@@ -1,0 +1,61 @@
+@page "/register"
+@attribute [AllowAnonymous]
+@inject IExamService Exams
+@inject JwtAuthStateProvider Auth
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Register</PageTitle>
+
+<div class="auth-page">
+    <div class="particle-field"></div>
+    <MudPaper Class="auth-panel" Elevation="0">
+        <MudText Typo="Typo.h3">Create Account</MudText>
+        <MudText Typo="Typo.subtitle1" Color="Color.Secondary">Start as a student and track your progress.</MudText>
+
+        <MudForm @ref="_form" Class="form-stack">
+            <MudTextField @bind-Value="_fullName" Label="Full name" Variant="Variant.Outlined" Required="true" />
+            <MudTextField @bind-Value="_email" Label="Email" Variant="Variant.Outlined" InputType="InputType.Email" Required="true" />
+            <MudTextField @bind-Value="_password" Label="Password" Variant="Variant.Outlined" InputType="InputType.Password" Required="true" />
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Large" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="RegisterAsync" Disabled="_busy" FullWidth="true">
+                @(_busy ? "Creating..." : "Register")
+            </MudButton>
+        </MudForm>
+
+        <MudLink Href="/login">Already have an account?</MudLink>
+    </MudPaper>
+</div>
+
+@code {
+    private MudForm? _form;
+    private string _fullName = "";
+    private string _email = "";
+    private string _password = "";
+    private bool _busy;
+
+    private async Task RegisterAsync()
+    {
+        await _form!.Validate();
+        if (!_form.IsValid)
+        {
+            return;
+        }
+
+        try
+        {
+            _busy = true;
+            var auth = await Exams.RegisterAsync(new RegisterRequest(_email, _fullName, _password));
+            await Auth.SetLoginAsync(auth);
+            Snackbar.Add("Account created.", Severity.Success);
+            Navigation.NavigateTo("/dashboard");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

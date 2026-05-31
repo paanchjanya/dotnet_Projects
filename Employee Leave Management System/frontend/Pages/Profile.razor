@@ -1,0 +1,328 @@
+@page "/profile"
+@attribute [Authorize]
+@using System.Net.Http.Headers
+@inject EmployeeService EmployeeService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+
+<PageTitle>My Profile - LeaveFlow</PageTitle>
+
+<div class="fade-in">
+    <h2 class="mb-4" style="font-weight: 700; color: var(--text-primary);">Your Employee Profile</h2>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-teal" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 text-secondary">Loading profile...</p>
+        </div>
+    }
+    else
+    {
+        <div class="profile-grid">
+            <!-- Left Panel: Avatar Upload & Account Status -->
+            <div class="profile-photo-card">
+                <div class="profile-avatar-large">
+                    @if (!string.IsNullOrEmpty(userProfile.ProfilePictureUrl))
+                    {
+                        <img src="@GetFullImageUrl(userProfile.ProfilePictureUrl)" alt="Profile Picture" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" />
+                    }
+                    else
+                    {
+                        <span>@initials</span>
+                    }
+                </div>
+                
+                <div>
+                    <h4 style="font-weight: 700;">@userProfile.FullName</h4>
+                    <span class="status-badge" style="background: rgba(2, 132, 199, 0.08); color: var(--secondary); margin-top: 0.25rem;">
+                        Role: @userProfile.Role
+                    </span>
+                </div>
+
+                <div class="upload-btn-wrapper" style="width: 100%;">
+                    <button class="btn btn-secondary" style="width: 100%; border-radius: 10px; display: inline-flex; justify-content: center; align-items: center; gap: 0.5rem;" disabled="@uploadingPhoto">
+                        @if (uploadingPhoto)
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            <span>Uploading Photo...</span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-camera"></i> <span>Change Photo</span>
+                        }
+                    </button>
+                    @if (!uploadingPhoto)
+                    {
+                        <InputFile OnChange="HandlePhotoSelected" accept=".jpg,.jpeg,.png,.gif" />
+                    }
+                </div>
+                
+                <div style="border-top: 1px solid var(--border); width: 100%; padding-top: 1rem; text-align: left; font-size: 0.85rem; color: var(--text-secondary);">
+                    <div class="mb-2">Username: <strong>@userProfile.Username</strong></div>
+                    <div>Joined: <strong>@userProfile.JoinDate.ToLocalTime().ToString("D")</strong></div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Edit Details Form -->
+            <div class="section-card">
+                <h3 class="section-title">Edit Details</h3>
+                
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="mb-4" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--danger); padding: 0.85rem 1rem; border-radius: 10px; font-size: 0.85rem;">
+                        <i class="bi bi-exclamation-triangle-fill"></i> @errorMessage
+                    </div>
+                }
+
+                @if (showSuccessMessage)
+                {
+                    <div class="mb-4" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: var(--success); padding: 0.85rem 1rem; border-radius: 10px; font-size: 0.85rem;">
+                        <i class="bi bi-check-circle-fill"></i> Profile updated successfully!
+                    </div>
+                }
+
+                <EditForm Model="@editModel" OnValidSubmit="HandleUpdateProfile">
+                    <DataAnnotationsValidator />
+
+                    <div class="row mb-3">
+                        <div class="col form-group">
+                            <label class="form-label" for="firstName">First Name</label>
+                            <InputText id="firstName" class="form-control" @bind-Value="editModel.FirstName" />
+                        </div>
+                        <div class="col form-group">
+                            <label class="form-label" for="lastName">Last Name</label>
+                            <InputText id="lastName" class="form-control" @bind-Value="editModel.LastName" />
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="form-label" for="email">Email Address</label>
+                        <InputText id="email" type="email" class="form-control" @bind-Value="editModel.Email" />
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="form-label" for="department">Department</label>
+                        <InputText id="department" class="form-control" @bind-Value="editModel.Department" />
+                    </div>
+
+                    <div class="form-group mb-4">
+                        <label class="form-label" for="manager">Designated Manager</label>
+                        <select id="manager" class="form-control" @bind="editModel.ManagerId">
+                            <option value="">-- Select Manager --</option>
+                            @foreach (var manager in managersList)
+                            {
+                                <option value="@manager.Id">@manager.FullName (@manager.Department)</option>
+                            }
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="border-radius: 10px; display: inline-flex; align-items: center; gap: 0.5rem;" disabled="@updatingProfile">
+                        @if (updatingProfile)
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            <span>Saving Changes...</span>
+                        }
+                        else
+                        {
+                            <span>Save Changes</span>
+                        }
+                    </button>
+                </EditForm>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private UserModel userProfile = new();
+    private ProfileEditModel editModel = new();
+    private List<ManagerItem> managersList = new();
+    
+    private bool isLoading = true;
+    private bool updatingProfile = false;
+    private bool uploadingPhoto = false;
+    private bool showSuccessMessage = false;
+    private string? errorMessage;
+    private string initials = "U";
+
+    private class ProfileEditModel
+    {
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Department { get; set; } = string.Empty;
+        public int? ManagerId { get; set; }
+    }
+
+    private class ManagerItem
+    {
+        public int Id { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Department { get; set; } = string.Empty;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProfile();
+    }
+
+    private async Task LoadProfile(bool clearSuccess = true)
+    {
+        isLoading = true;
+        errorMessage = null;
+        if (clearSuccess)
+        {
+            showSuccessMessage = false;
+        }
+        
+        try
+        {
+            var profile = await EmployeeService.GetProfileAsync();
+            if (profile != null)
+            {
+                userProfile = profile;
+                
+                editModel = new ProfileEditModel
+                {
+                    FirstName = userProfile.FirstName,
+                    LastName = userProfile.LastName,
+                    Email = userProfile.Email,
+                    Department = userProfile.Department,
+                    ManagerId = userProfile.ManagerId
+                };
+
+                initials = userProfile.FirstName.Length > 0 && userProfile.LastName.Length > 0
+                    ? $"{userProfile.FirstName[0]}{userProfile.LastName[0]}".ToUpper()
+                    : "U";
+
+                // Load managers list for selection
+                var managers = await EmployeeService.GetManagersAsync();
+                managersList.Clear();
+                foreach (var item in managers)
+                {
+                    var elem = System.Text.Json.JsonSerializer.Deserialize<ManagerItem>(item.ToString()!);
+                    if (elem != null && elem.Id != userProfile.Id) // Don't list self as manager
+                    {
+                        managersList.Add(elem);
+                    }
+                }
+            }
+            else
+            {
+                errorMessage = "Failed to load profile. Please verify your authentication state.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading details: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string GetFullImageUrl(string relativePath)
+    {
+        var backendUrl = Configuration["BackendUrl"] ?? "http://localhost:5220/";
+        var imageUrl = new Uri(new Uri(backendUrl), relativePath.TrimStart('/')).ToString();
+        return $"{imageUrl}?v={Uri.EscapeDataString(userProfile.ProfilePictureUrl ?? string.Empty)}";
+    }
+
+    private async Task HandleUpdateProfile()
+    {
+        if (string.IsNullOrWhiteSpace(editModel.FirstName) || string.IsNullOrWhiteSpace(editModel.LastName))
+        {
+            errorMessage = "First Name and Last Name are required.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(editModel.Email))
+        {
+            errorMessage = "Email Address is required.";
+            return;
+        }
+
+        updatingProfile = true;
+        errorMessage = null;
+        showSuccessMessage = false;
+
+        try
+        {
+            // Add a short delay to display the loading state and make the saving animation feel smoother and more natural
+            await Task.Delay(1000);
+
+            var success = await EmployeeService.UpdateProfileAsync(
+                editModel.FirstName,
+                editModel.LastName,
+                editModel.Email,
+                editModel.Department,
+                editModel.ManagerId
+            );
+
+            if (success)
+            {
+                showSuccessMessage = true;
+                await LoadProfile(clearSuccess: false);
+            }
+            else
+            {
+                errorMessage = "Failed to update profile. Email might be in use by another user.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            updatingProfile = false;
+        }
+    }
+
+    private async Task HandlePhotoSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        uploadingPhoto = true;
+        errorMessage = null;
+        showSuccessMessage = false;
+
+        try
+        {
+            var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(file.OpenReadStream(5 * 1024 * 1024)); // 5MB limit
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+            content.Add(fileContent, "file", file.Name);
+
+            // Add a short delay to display the loading state and make the uploading animation feel smoother and more natural
+            await Task.Delay(1000);
+
+            var dbPath = await EmployeeService.UploadProfilePictureAsync(content);
+            if (dbPath != null)
+            {
+                userProfile.ProfilePictureUrl = dbPath;
+                showSuccessMessage = true;
+                await LoadProfile(clearSuccess: false);
+            }
+            else
+            {
+                errorMessage = "Failed to upload profile picture. Verify file type (JPG, PNG, GIF).";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error uploading photo: {ex.Message}";
+        }
+        finally
+        {
+            uploadingPhoto = false;
+        }
+    }
+}

@@ -1,0 +1,185 @@
+@page "/"
+@inject ApiService ApiService
+@inject CartService CartService
+
+<div class="fade-in">
+    <!-- Hero Banner with AI Generated Background -->
+    <div class="hero-banner">
+        <img src="images/bookstore_banner.png" alt="Bookstore Banner" class="hero-bg" />
+        <div class="hero-overlay">
+            <div class="hero-content">
+                <span class="badge bg-primary mb-3 py-2 px-3 rounded-pill uppercase fw-bold tracking-wide">Welcome to NovelNook</span>
+                <h1>Discover Your Next Great Adventure</h1>
+                <p>Explore a curated collection of bestsellers, tech guides, fantasy epics, and classic fiction. Delivered straight to your shelf.</p>
+                <div class="search-container">
+                    <span class="bi bi-search search-icon"></span>
+                    <input type="text" class="form-control form-control-lg search-input" 
+                           placeholder="Search books, authors, or genres..." 
+                           @bind="searchText" @bind:event="oninput" @onkeyup="HandleSearch" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Storefront Sections -->
+    <div class="row">
+        <!-- Categories Filters -->
+        <div class="col-12 mb-4">
+            <h3 class="mb-3 font-outfit">Browse Categories</h3>
+            <div class="category-pills">
+                @foreach (var cat in categories)
+                {
+                    <div class="category-pill @(selectedCategory == cat ? "active" : "")" 
+                         @onclick="() => SelectCategory(cat)">
+                        @cat
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Books Listing Section -->
+    <div class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="font-outfit mb-0">
+                @(string.IsNullOrEmpty(selectedCategory) || selectedCategory == "All" ? "Featured Books" : $"{selectedCategory} Collection")
+                @if (books != null)
+                {
+                    <span class="text-secondary fs-5 fw-normal">(@books.Count available)</span>
+                }
+            </h2>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="d-flex flex-column align-items-center justify-content-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="text-secondary mt-3">Curating our bookshelves for you...</p>
+            </div>
+        }
+        else if (books == null || books.Count == 0)
+        {
+            <div class="text-center py-5 border rounded-3 bg-white shadow-sm">
+                <span class="bi bi-book fs-1 text-secondary mb-3 d-inline-block"></span>
+                <h4>No books found</h4>
+                <p class="text-secondary">Try adjusting your search filters or check back later.</p>
+                <button class="btn btn-outline-primary mt-2" @onclick="ClearFilters">Reset Filters</button>
+            </div>
+        }
+        else
+        {
+            <div class="book-grid">
+                @foreach (var book in books)
+                {
+                    <div class="book-card fade-in">
+                        <div class="book-image-wrapper">
+                            <img src="@GetAbsoluteImageUrl(book.CoverImageUrl)" alt="@book.Title" class="book-image" />
+                            <span class="book-badge">@book.Category</span>
+                        </div>
+                        <div class="book-body">
+                            <span class="book-category">@book.Category</span>
+                            <h4 class="book-title" title="@book.Title">@book.Title</h4>
+                            <span class="book-author">by @book.Author</span>
+                            <p class="text-secondary small mb-3 text-truncate-2">@book.Description</p>
+                            
+                            <div class="book-footer">
+                                <span class="book-price">$@book.Price.ToString("F2")</span>
+                                @if (book.StockQuantity > 0)
+                                {
+                                    <div class="d-flex gap-2">
+                                        <a href="/books/@book.Id" class="btn btn-sm btn-outline-primary py-2 px-3" title="View Details">
+                                            <span class="bi bi-eye"></span>
+                                        </a>
+                                        <button class="btn btn-sm btn-primary py-2 px-3" @onclick="() => AddToCart(book)">
+                                            <span class="bi bi-cart-plus me-1"></span>Buy
+                                        </button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary py-2 px-3">Out of Stock</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<Book>? books;
+    private string searchText = string.Empty;
+    private string selectedCategory = "All";
+    private bool isLoading = true;
+
+    private readonly List<string> categories = new() { "All", "Fiction", "Dystopian", "Science", "Technology", "Fantasy" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBooks();
+    }
+
+    private async Task LoadBooks()
+    {
+        isLoading = true;
+        var categoryParam = selectedCategory == "All" ? null : selectedCategory;
+        books = await ApiService.GetBooksAsync(searchText, categoryParam);
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task SelectCategory(string category)
+    {
+        selectedCategory = category;
+        await LoadBooks();
+    }
+
+    private async Task HandleSearch()
+    {
+        await LoadBooks();
+    }
+
+    private async Task ClearFilters()
+    {
+        searchText = string.Empty;
+        selectedCategory = "All";
+        await LoadBooks();
+    }
+
+    private string GetAbsoluteImageUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url))
+        {
+            return "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&q=80&w=400";
+        }
+        if (url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        {
+            return url;
+        }
+        return $"{ApiService.BaseAddress.TrimEnd('/')}/{url.TrimStart('/')}";
+    }
+
+    private async Task AddToCart(Book book)
+    {
+        await CartService.AddToCartAsync(book, 1);
+    }
+}
+
+<style>
+    .text-truncate-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        height: 2.4rem;
+        line-height: 1.2rem;
+    }
+    .font-outfit {
+        font-family: 'Outfit', sans-serif;
+    }
+</style>

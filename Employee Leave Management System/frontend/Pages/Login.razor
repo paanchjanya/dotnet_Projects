@@ -1,0 +1,118 @@
+@page "/login"
+@layout EmptyLayout
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Login - LeaveFlow</PageTitle>
+
+<div class="login-container fade-in">
+    <div class="login-card">
+        <div class="login-header">
+            <h2>Welcome to LeaveFlow</h2>
+            <p>Access your leave portal below</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--danger); padding: 0.85rem 1rem; border-radius: 10px; font-size: 0.85rem;">
+                <i class="bi bi-exclamation-triangle-fill"></i> @errorMessage
+            </div>
+        }
+
+        <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator />
+            
+            <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label class="form-label" for="username">Username</label>
+                <InputText id="username" class="form-control" @bind-Value="loginModel.Username" placeholder="Enter username" />
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label class="form-label" for="password">Password</label>
+                <InputText id="password" type="password" class="form-control" @bind-Value="loginModel.Password" placeholder="Enter password" />
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; border-radius: 10px;" disabled="@isLoggingIn">
+                @if (isLoggingIn)
+                {
+                    <span>Signing in...</span>
+                }
+                else
+                {
+                    <span>Sign In</span>
+                }
+            </button>
+        </EditForm>
+
+        <div class="demo-credentials">
+            <div class="demo-title">🔑 Quick Access Accounts</div>
+            <div class="demo-account-list">
+                <button type="button" class="btn-demo-badge" @onclick='() => Autofill("alice", "Alice123!")'>
+                    Alice (Employee)
+                </button>
+                <button type="button" class="btn-demo-badge" @onclick='() => Autofill("bob", "Bob123!")'>
+                    Bob (Manager)
+                </button>
+                <button type="button" class="btn-demo-badge" @onclick='() => Autofill("admin", "Admin123!")'>
+                    Admin
+                </button>
+            </div>
+        </div>
+        
+        <div style="text-align: center; font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">
+            <a href="/" style="color: var(--primary); text-decoration: none;">&larr; Back to Cover Page</a>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginCredentials loginModel = new();
+    private string? errorMessage;
+    private bool isLoggingIn = false;
+
+    private class LoginCredentials
+    {
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+
+    private void Autofill(string username, string password)
+    {
+        loginModel.Username = username;
+        loginModel.Password = password;
+        errorMessage = null;
+    }
+
+    private async Task HandleLogin()
+    {
+        if (string.IsNullOrWhiteSpace(loginModel.Username) || string.IsNullOrWhiteSpace(loginModel.Password))
+        {
+            errorMessage = "Please enter both username and password.";
+            return;
+        }
+
+        isLoggingIn = true;
+        errorMessage = null;
+
+        try
+        {
+            var token = await AuthService.Login(loginModel.Username, loginModel.Password);
+            if (token != null)
+            {
+                NavigationManager.NavigateTo("dashboard");
+            }
+            else
+            {
+                errorMessage = "Invalid username or password. Check demo credentials below.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An unexpected error occurred: {ex.Message}";
+        }
+        finally
+        {
+            isLoggingIn = false;
+        }
+    }
+}

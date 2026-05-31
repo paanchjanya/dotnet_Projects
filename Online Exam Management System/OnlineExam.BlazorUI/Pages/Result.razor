@@ -1,0 +1,115 @@
+@page "/result/{AttemptId:int}"
+@attribute [Authorize]
+@inject IExamService Exams
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<PageTitle>Result</PageTitle>
+<ConfettiEffect @ref="_confetti" />
+
+@if (_result is null)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <div class="page-head">
+        <div>
+            <MudText Typo="Typo.h3">@_result.ExamTitle</MudText>
+            <MudText Color="Color.Secondary">Score summary and per-question review.</MudText>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Share" OnClick="ShareAsync">Share</MudButton>
+    </div>
+
+    <MudPaper Class="result-summary" Elevation="0">
+        <MudText Typo="Typo.h2">@_result.Score / @_result.TotalMarks</MudText>
+        <MudProgressLinear Value="@_result.Percentage" Color="@ScoreColor" Rounded="true" Size="Size.Large" />
+        <MudText Typo="Typo.h6">@_result.Percentage% • @_result.Status</MudText>
+    </MudPaper>
+
+    <div class="charts-grid">
+        <MudPaper Class="chart-panel" Elevation="0"><canvas id="topicBar"></canvas></MudPaper>
+        <MudPaper Class="chart-panel" Elevation="0"><canvas id="topicRadar"></canvas></MudPaper>
+    </div>
+
+    <MudTable Items="_result.Questions" Hover="true" Elevation="0" Class="review-table">
+        <HeaderContent>
+            <MudTh>Question</MudTh>
+            <MudTh>Your Answer</MudTh>
+            <MudTh>Correct</MudTh>
+            <MudTh>Points</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Question">@context.QuestionText</MudTd>
+            <MudTd DataLabel="Your Answer">@context.SelectedOptionText</MudTd>
+            <MudTd DataLabel="Correct">@context.CorrectOptionText</MudTd>
+            <MudTd DataLabel="Points">
+                <MudChip T="string" Color="@(context.IsCorrect ? Color.Tertiary : Color.Secondary)">@context.PointsEarned / @context.Marks</MudChip>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    [Parameter] public int AttemptId { get; set; }
+
+    private ResultDto? _result;
+    private ConfettiEffect? _confetti;
+    private bool _chartInitialized;
+    private Color ScoreColor => GetScoreColor();
+
+    private Color GetScoreColor()
+    {
+        if ((_result?.Percentage ?? 0) < 50)
+        {
+            return Color.Error;
+        }
+
+        if ((_result?.Percentage ?? 0) < 70)
+        {
+            return Color.Warning;
+        }
+
+        return Color.Tertiary;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _result = await Exams.GetResultAsync(AttemptId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_result is not null && !_chartInitialized)
+        {
+            _chartInitialized = true;
+            var labels = _result.TopicScores.Select(x => x.Topic).ToArray();
+            var values = _result.TopicScores.Select(x => x.TotalMarks == 0 ? 0 : x.PointsEarned * 100d / x.TotalMarks).ToArray();
+            await JS.InvokeVoidAsync("examUi.chart", "topicBar", "bar", labels, values, "#6C63FF");
+            await JS.InvokeVoidAsync("examUi.chart", "topicRadar", "radar", labels, values, "#FF6584");
+
+            if (_result.Percentage >= 60 && _confetti is not null)
+            {
+                await _confetti.BurstAsync();
+            }
+        }
+    }
+
+    private async Task ShareAsync()
+    {
+        if (_result is null)
+        {
+            return;
+        }
+
+        await JS.InvokeVoidAsync("examUi.copyText", $"I scored {_result.Score}/{_result.TotalMarks} ({_result.Percentage}%) on {_result.ExamTitle}.");
+        Snackbar.Add("Result copied to clipboard.", Severity.Success);
+    }
+}

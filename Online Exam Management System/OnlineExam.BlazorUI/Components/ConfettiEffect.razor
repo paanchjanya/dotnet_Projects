@@ -1,0 +1,5 @@
+@inject IJSRuntime JS
+
+@code {
+    public ValueTask BurstAsync() => JS.InvokeVoidAsync("examUi.confetti");
+}

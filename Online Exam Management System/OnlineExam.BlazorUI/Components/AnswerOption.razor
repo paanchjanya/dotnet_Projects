@@ -1,0 +1,15 @@
+<button class="@CssClass" @onclick="Select">
+    <span class="option-key">@KeyLabel</span>
+    <span>@Option.Text</span>
+</button>
+
+@code {
+    [Parameter, EditorRequired] public OptionDto Option { get; set; } = default!;
+    [Parameter] public bool Selected { get; set; }
+    [Parameter] public string KeyLabel { get; set; } = "";
+    [Parameter] public EventCallback<int> OnSelected { get; set; }
+
+    private string CssClass => Selected ? "answer-option selected" : "answer-option";
+
+    private Task Select() => OnSelected.InvokeAsync(Option.Id);
+}

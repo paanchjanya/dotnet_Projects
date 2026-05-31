@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="OnlineExam.API/OnlineExam.API.csproj" />
+  <Project Path="OnlineExam.BlazorUI/OnlineExam.BlazorUI.csproj" />
+  <Project Path="OnlineExam.Data/OnlineExam.Data.csproj" />
+  <Project Path="OnlineExam.Shared/OnlineExam.Shared.csproj" />
+  <Project Path="OnlineExam.Tests/OnlineExam.Tests.csproj" />
+</Solution>

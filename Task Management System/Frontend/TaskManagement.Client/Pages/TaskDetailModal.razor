@@ -1,0 +1,445 @@
+@inject BoardService BoardSvc
+@inject AuthStateProvider AuthProvider
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+
+<div class="modal-overlay" @onclick="CloseModal">
+    <div class="glass-panel modal-content" @onclick:stopPropagation="true" style="color: var(--text-main);">
+        @if (_task == null)
+        {
+            <div style="text-align: center; padding: 2rem;">
+                <p>Loading task details...</p>
+            </div>
+        }
+        else
+        {
+            <!-- Modal Header -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
+                <div style="flex: 1; margin-right: 1.5rem;">
+                    @if (_isEditingTitle)
+                    {
+                        <input class="form-input" style="font-size: 1.5rem; font-weight: 700; padding: 0.25rem 0.5rem;" @bind="_editingTitle" @onblur="SaveTitle" @onkeyup="HandleTitleKeyup" />
+                    }
+                    else
+                    {
+                        <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700; cursor: pointer; color: var(--primary);" @onclick="StartEditingTitle" title="Click to edit title">
+                            @_task.Title
+                        </h2>
+                    }
+                    <p style="margin: 0.5rem 0 0 0; font-size: 0.85rem; color: var(--text-muted);">
+                        in stage <span style="font-weight: 600; color: var(--primary);">@_task.Column?.Name</span>
+                    </p>
+                </div>
+                <button style="background: transparent; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; padding: 0;" @onclick="CloseModal">✕</button>
+            </div>
+
+            <!-- Two-Column Layout -->
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; align-items: start;">
+                
+                <!-- Left Column (Description, Attachments, Comments) -->
+                <div style="display: flex; flex-direction: column; gap: 2rem;">
+                    
+                    <!-- Description -->
+                    <div>
+                        <h3 style="margin-top: 0; margin-bottom: 0.75rem; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+                            Description
+                        </h3>
+                        @if (_isEditingDesc)
+                        {
+                            <textarea class="form-input" style="min-height: 120px; resize: vertical; margin-bottom: 0.5rem;" @bind="_editingDesc" placeholder="Add a detailed description..."></textarea>
+                            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                <button class="btn-secondary" style="padding: 0.4rem 1rem; font-size: 0.85rem;" @onclick="CancelEditingDesc">Cancel</button>
+                                <button class="btn-premium" style="width: auto; padding: 0.4rem 1.25rem; font-size: 0.85rem;" @onclick="SaveDescription">Save</button>
+                            </div>
+                        }
+                        else
+                        {
+                            <div style="padding: 1rem; border-radius: 8px; background-color: rgba(255,255,255,0.03); border: 1px solid var(--border-color); cursor: pointer; min-height: 50px; line-height: 1.5;" @onclick="StartEditingDesc">
+                                @if (string.IsNullOrWhiteSpace(_task.Description))
+                                {
+                                    <span style="color: var(--text-muted); font-style: italic;">Add a detailed description...</span>
+                                }
+                                else
+                                {
+                                    <span>@_task.Description</span>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Attachments -->
+                    <div>
+                        <h3 style="margin-top: 0; margin-bottom: 0.75rem; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15.172 7l-6.586 6.586a2 2 0 11-2.828-2.828l6.414-6.414a4 4 0 015.656 5.656l-6.415 6.415a6 6 0 11-8.486-8.486L10.5 10"/></svg>
+                            Attachments
+                        </h3>
+                        
+                        <!-- List -->
+                        @if (_task.Attachments.Any())
+                        {
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
+                                @foreach (var att in _task.Attachments)
+                                {
+                                    <div class="glass-panel" style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem; border-radius: 6px;">
+                                        <div style="display: flex; align-items: center; gap: 0.5rem; overflow: hidden; margin-right: 1rem;">
+                                            <svg width="18" height="18" fill="none" stroke="var(--primary)" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                            <a href="@($"http://localhost:5204{att.FilePath}")" target="_blank" style="font-size: 0.9rem; font-weight: 500; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
+                                                @att.FileName
+                                            </a>
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 1rem; font-size: 0.8rem; color: var(--text-muted);">
+                                            <span>@att.UploadedAt.ToLocalTime().ToString("MMM dd")</span>
+                                            <button style="background: transparent; border: none; color: var(--danger); cursor: pointer; padding: 0;" @onclick="() => DeleteAttachment(att.Id)" title="Delete attachment">✕</button>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        <!-- Upload form -->
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <label class="btn-secondary" style="font-size: 0.85rem; padding: 0.5rem 1rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.25rem;">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                Upload File
+                                <InputFile OnChange="UploadFile" style="display: none;" />
+                            </label>
+                            @if (_uploading)
+                            {
+                                <span style="font-size: 0.85rem; color: var(--text-muted);">Uploading...</span>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Comments -->
+                    <div>
+                        <h3 style="margin-top: 0; margin-bottom: 0.75rem; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                            Activity / Comments
+                        </h3>
+
+                        <!-- Add Comment -->
+                        <div style="display: flex; gap: 1rem; align-items: flex-start; margin-bottom: 1.5rem;">
+                            <img src="@_currentUserAvatar" class="avatar" style="width: 32px; height: 32px; margin-top: 0.25rem;" />
+                            <div style="flex: 1;">
+                                <textarea class="form-input" style="min-height: 60px; resize: vertical; margin-bottom: 0.5rem; font-size: 0.9rem;" placeholder="Write a comment..." @bind="_newCommentText"></textarea>
+                                <div style="display: flex; justify-content: flex-end;">
+                                    <button class="btn-premium" style="width: auto; padding: 0.4rem 1.25rem; font-size: 0.85rem;" @onclick="AddComment">Comment</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Comment List -->
+                        <div style="display: flex; flex-direction: column; gap: 1rem;">
+                            @foreach (var comm in _task.Comments)
+                            {
+                                <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                                    <img src="@comm.User?.AvatarUrl" class="avatar" style="width: 32px; height: 32px;" />
+                                    <div class="glass-panel" style="flex: 1; padding: 0.75rem 1rem; border-radius: 8px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                            <span style="font-weight: 600; font-size: 0.9rem; color: var(--primary);">@comm.User?.DisplayName</span>
+                                            <div style="display: flex; align-items: center; gap: 0.75rem; font-size: 0.75rem; color: var(--text-muted);">
+                                                <span>@comm.CreatedAt.ToLocalTime().ToString("MMM dd, HH:mm")</span>
+                                                @if (CanDeleteComment(comm))
+                                                {
+                                                    <button style="background: transparent; border: none; color: var(--danger); cursor: pointer; padding: 0;" @onclick="() => DeleteComment(comm.Id)">Delete</button>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div style="font-size: 0.9rem; line-height: 1.4; white-space: pre-line;">@comm.Content</div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column (Settings: Assignee, Priority, Due Date, Delete) -->
+                <div class="glass-panel" style="padding: 1.25rem; display: flex; flex-direction: column; gap: 1.25rem; box-sizing: border-box;">
+                    
+                    <!-- Assignee -->
+                    <div>
+                        <label class="form-label" style="font-size: 0.8rem; margin-bottom: 0.35rem;">Assignee</label>
+                        <select class="form-select" style="font-size: 0.9rem; padding: 0.5rem;" @bind="_selectedAssigneeId" @bind:after="UpdateAssignee">
+                            <option value="">Unassigned</option>
+                            @foreach (var user in _users)
+                            {
+                                <option value="@user.Id">@user.DisplayName</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Priority -->
+                    <div>
+                        <label class="form-label" style="font-size: 0.8rem; margin-bottom: 0.35rem;">Priority</label>
+                        <select class="form-select" style="font-size: 0.9rem; padding: 0.5rem;" @bind="_selectedPriority" @bind:after="UpdatePriority">
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                        </select>
+                    </div>
+
+                    <!-- Due Date -->
+                    <div>
+                        <label class="form-label" style="font-size: 0.8rem; margin-bottom: 0.35rem;">Due Date</label>
+                        <input type="date" class="form-input" style="font-size: 0.9rem; padding: 0.4rem 0.5rem;" 
+                               value="@_formattedDueDate" 
+                               @onchange="UpdateDueDate" />
+                    </div>
+
+                    <!-- Delete Button -->
+                    <div style="margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem;">
+                        <button class="btn-premium" style="background: transparent; border: 1px solid var(--danger); color: var(--danger); box-shadow: none;" @onclick="DeleteTask">
+                            Delete Task
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public Guid TaskId { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private ClientTask? _task;
+    private List<ClientUser> _users = new();
+    
+    private string _editingTitle = string.Empty;
+    private bool _isEditingTitle;
+
+    private string _editingDesc = string.Empty;
+    private bool _isEditingDesc;
+
+    private string? _selectedAssigneeId;
+    private string _selectedPriority = "Medium";
+    private string? _formattedDueDate;
+
+    private string _newCommentText = string.Empty;
+    
+    private bool _uploading;
+    private string _currentUserAvatar = "https://api.dicebear.com/7.x/initials/svg?seed=U";
+    private string _currentUserId = string.Empty;
+    private bool _isAdmin;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTask();
+        await LoadUsers();
+        await ResolveCurrentUserInfo();
+    }
+
+    private async Task LoadTask()
+    {
+        _task = await BoardSvc.GetTaskAsync(TaskId);
+        if (_task != null)
+        {
+            _editingTitle = _task.Title;
+            _editingDesc = _task.Description;
+            _selectedAssigneeId = _task.AssignedToUserId;
+            _selectedPriority = _task.Priority.ToString();
+            _formattedDueDate = _task.DueDate?.ToString("yyyy-MM-dd");
+        }
+    }
+
+    private async Task LoadUsers()
+    {
+        _users = await BoardSvc.GetUsersAsync();
+    }
+
+    private async Task ResolveCurrentUserInfo()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            _currentUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
+            _currentUserAvatar = user.FindFirst("avatarUrl")?.Value ?? $"https://api.dicebear.com/7.x/initials/svg?seed={Uri.EscapeDataString(user.Identity.Name ?? "U")}";
+            _isAdmin = user.IsInRole("Admin");
+        }
+    }
+
+    private async Task CloseModal()
+    {
+        await OnClose.InvokeAsync();
+    }
+
+    // Editing title inline
+    private void StartEditingTitle()
+    {
+        _isEditingTitle = true;
+    }
+
+    private async Task SaveTitle()
+    {
+        if (string.IsNullOrWhiteSpace(_editingTitle) || _editingTitle == _task?.Title)
+        {
+            _isEditingTitle = false;
+            return;
+        }
+
+        _isEditingTitle = false;
+        var success = await BoardSvc.UpdateTaskAsync(TaskId, _editingTitle, _task!.Description, _task.Priority, _task.DueDate, _task.AssignedToUserId);
+        if (success)
+        {
+            await LoadTask();
+        }
+    }
+
+    private async Task HandleTitleKeyup(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SaveTitle();
+        }
+        else if (e.Key == "Escape")
+        {
+            _isEditingTitle = false;
+        }
+    }
+
+    // Editing description
+    private void StartEditingDesc()
+    {
+        _isEditingDesc = true;
+    }
+
+    private void CancelEditingDesc()
+    {
+        _isEditingDesc = false;
+        _editingDesc = _task?.Description ?? "";
+    }
+
+    private async Task SaveDescription()
+    {
+        _isEditingDesc = false;
+        var success = await BoardSvc.UpdateTaskAsync(TaskId, _task!.Title, _editingDesc, _task.Priority, _task.DueDate, _task.AssignedToUserId);
+        if (success)
+        {
+            await LoadTask();
+        }
+    }
+
+    // Settings Dropdowns updates
+    private async Task UpdateAssignee()
+    {
+        var assigneeId = string.IsNullOrEmpty(_selectedAssigneeId) ? null : _selectedAssigneeId;
+        await BoardSvc.UpdateTaskAsync(TaskId, _task!.Title, _task.Description, _task.Priority, _task.DueDate, assigneeId);
+        await LoadTask();
+    }
+
+    private async Task UpdatePriority()
+    {
+        var priority = Enum.Parse<TaskPriority>(_selectedPriority);
+        await BoardSvc.UpdateTaskAsync(TaskId, _task!.Title, _task.Description, priority, _task.DueDate, _task.AssignedToUserId);
+        await LoadTask();
+    }
+
+    private async Task UpdateDueDate(ChangeEventArgs e)
+    {
+        var val = e.Value?.ToString();
+        DateTime? dueDate = null;
+        if (!string.IsNullOrEmpty(val))
+        {
+            dueDate = DateTime.Parse(val);
+        }
+
+        await BoardSvc.UpdateTaskAsync(TaskId, _task!.Title, _task.Description, _task.Priority, dueDate, _task.AssignedToUserId);
+        await LoadTask();
+    }
+
+    // Comment operations
+    private async Task AddComment()
+    {
+        if (string.IsNullOrWhiteSpace(_newCommentText)) return;
+
+        var comm = await BoardSvc.AddCommentAsync(TaskId, _newCommentText);
+        if (comm != null)
+        {
+            _newCommentText = string.Empty;
+            await LoadTask();
+        }
+    }
+
+    private bool CanDeleteComment(ClientComment comment)
+    {
+        return _isAdmin || comment.UserId == _currentUserId;
+    }
+
+    private async Task DeleteComment(Guid id)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Delete this comment?");
+        if (confirmed)
+        {
+            var success = await BoardSvc.DeleteCommentAsync(id);
+            if (success)
+            {
+                await LoadTask();
+            }
+        }
+    }
+
+    // Attachment operations
+    private async Task UploadFile(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        _uploading = true;
+        StateHasChanged();
+
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            var fileStream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10MB limit
+            var streamContent = new StreamContent(fileStream);
+            streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+            
+            content.Add(streamContent, "file", file.Name);
+            content.Add(new StringContent(TaskId.ToString()), "taskItemId");
+
+            var response = await Http.PostAsync("api/attachments/upload", content);
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadTask();
+            }
+        }
+        catch
+        {
+            // Error uploading file
+        }
+        finally
+        {
+            _uploading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteAttachment(Guid id)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Delete this file attachment?");
+        if (confirmed)
+        {
+            var success = await BoardSvc.DeleteAttachmentAsync(id);
+            if (success)
+            {
+                await LoadTask();
+            }
+        }
+    }
+
+    // Delete Task operation
+    private async Task DeleteTask()
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this task card?");
+        if (confirmed)
+        {
+            var success = await BoardSvc.DeleteTaskAsync(TaskId);
+            if (success)
+            {
+                await CloseModal();
+            }
+        }
+    }
+}
